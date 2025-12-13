@@ -27,6 +27,8 @@ from src.export import (
 )
 from src.incremental_cache import IncrementalRegistry, list_runs
 from src.incremental_builder import build_incremental, check_conjecture, analyze_extremal_structure
+from src.fast_builder import build_fast, check_conjecture_fast, export_extremal_analysis
+from src.compact_storage import FastRegistry
 
 
 def cmd_build(args):
@@ -286,6 +288,75 @@ def cmd_runs(args):
         print()
 
 
+def cmd_fast(args):
+    """Fast parallel build."""
+    from multiprocessing import cpu_count
+
+    N = args.N
+    T = args.T
+    workers = args.workers or cpu_count()
+
+    print(f"Fast parallel build: N={N}, T={T}, workers={workers}")
+    print(f"Checkpoint dir: {args.checkpoint_dir or 'disabled'}")
+    print()
+
+    checkpoint_dir = Path(args.checkpoint_dir) if args.checkpoint_dir else None
+
+    def progress(n, total_n, added, profiles, total_n_graphs, cumulative, elapsed):
+        print(f"  n={n:3d}: +{added:6d} graphs, {profiles:5d} profiles, "
+              f"{total_n_graphs:6d} for n, {cumulative:8d} total, {elapsed:.1f}s")
+
+    registry = build_fast(
+        N=N,
+        T=T,
+        num_workers=workers,
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_interval=args.checkpoint_interval,
+        progress_callback=progress
+    )
+
+    print()
+    print(f"Done! Total graphs: {registry.total_graphs():,}")
+
+    # Export results
+    if args.export_dir:
+        export_dir = Path(args.export_dir)
+        print(f"\nExporting to {export_dir}...")
+        for s in range(2, args.s_max + 1):
+            for t in range(s, args.t_max + 1):
+                path = export_dir / f"extremal_K{s}{t}.json"
+                export_extremal_analysis(registry, s, t, path)
+                print(f"  Exported K_{{{s},{t}}} analysis")
+
+    # Check conjecture
+    if args.check:
+        print("\nChecking conjecture...")
+        results = check_conjecture_fast(registry, s_min=2, s_max=args.s_max, t_max=args.t_max)
+
+        if results["all_connected"]:
+            print("RESULT: All extremal graphs for s,t >= 2 are CONNECTED (product)")
+        else:
+            print("RESULT: Found DISCONNECTED extremal graphs:")
+            for exc in results["exceptions"]:
+                print(f"  n={exc['n']}, K_{{{exc['s']},{exc['t']}}}: {exc['structure']}")
+
+        print("\nComponent size patterns:")
+        for key, st_result in results["by_st"].items():
+            if st_result["component_sizes"]:
+                sizes = st_result["component_sizes"]
+                # Group by n
+                by_n = {}
+                for n, size in sizes:
+                    if n not in by_n:
+                        by_n[n] = set()
+                    by_n[n].add(size)
+                print(f"  {key}: ", end="")
+                sample = [(n, sorted(s)) for n, s in sorted(by_n.items())[:5]]
+                print(", ".join(f"n={n}→{sizes}" for n, sizes in sample), "...")
+
+    return registry
+
+
 def _load_registry_for_query(args) -> Registry:
     """Load registry for query commands."""
     if hasattr(args, 'cache') and args.cache:
@@ -370,6 +441,18 @@ def main():
     # runs command (list runs)
     runs_parser = subparsers.add_parser("runs", help="List all runs")
 
+    # fast command (parallel build)
+    fast_parser = subparsers.add_parser("fast", help="Fast parallel build")
+    fast_parser.add_argument("--N", type=int, required=True, help="Maximum vertex count")
+    fast_parser.add_argument("--T", type=int, help="Prune K_{T,T} containing graphs")
+    fast_parser.add_argument("--workers", "-w", type=int, help="Number of workers (default: cpu_count)")
+    fast_parser.add_argument("--checkpoint-dir", help="Directory for checkpoints")
+    fast_parser.add_argument("--checkpoint-interval", type=int, default=5, help="Checkpoint every N values")
+    fast_parser.add_argument("--export-dir", help="Export results to directory")
+    fast_parser.add_argument("--s-max", type=int, default=7, help="Max s for exports")
+    fast_parser.add_argument("--t-max", type=int, default=7, help="Max t for exports")
+    fast_parser.add_argument("--check", action="store_true", help="Check conjecture after build")
+
     args = parser.parse_args()
 
     if args.command == "build":
@@ -386,6 +469,8 @@ def main():
         cmd_check(args)
     elif args.command == "runs":
         cmd_runs(args)
+    elif args.command == "fast":
+        cmd_fast(args)
     else:
         parser.print_help()
 
