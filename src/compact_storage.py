@@ -160,11 +160,11 @@ class FastRegistry:
         n: int,
         s: int,
         t: int
-    ) -> list[tuple[int, np.ndarray, CompactGraph]]:
+    ) -> list[tuple[int, np.ndarray, int, CompactGraph]]:
         """
         Get extremal K_{s,t}-free graphs on n vertices.
 
-        Returns list of (edges, profile, graph) tuples.
+        Returns list of (edges, profile, profile_hash, graph) tuples.
         """
         from .profile_ops import profile_avoids_kst
 
@@ -178,9 +178,9 @@ class FastRegistry:
                     edge_count = graphs[0].edges
                     if edge_count > max_edges:
                         max_edges = edge_count
-                        candidates = [(edge_count, profile, g) for g in graphs]
+                        candidates = [(edge_count, profile, profile_hash, g) for g in graphs]
                     elif edge_count == max_edges:
-                        candidates.extend((edge_count, profile, g) for g in graphs)
+                        candidates.extend((edge_count, profile, profile_hash, g) for g in graphs)
 
         return candidates
 

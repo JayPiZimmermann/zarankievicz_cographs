@@ -298,9 +298,13 @@ def cmd_fast(args):
 
     print(f"Fast parallel build: N={N}, T={T}, workers={workers}")
     print(f"Checkpoint dir: {args.checkpoint_dir or 'disabled'}")
+    if args.export_dir:
+        print(f"Export dir: {args.export_dir} (incremental)")
+        print(f"Exporting K_{{s,t}} for s,t in [2..{args.s_max}] x [2..{args.t_max}]")
     print()
 
     checkpoint_dir = Path(args.checkpoint_dir) if args.checkpoint_dir else None
+    export_dir = Path(args.export_dir) if args.export_dir else None
 
     def progress(n, total_n, added, profiles, total_n_graphs, cumulative, elapsed):
         print(f"  n={n:3d}: +{added:6d} graphs, {profiles:5d} profiles, "
@@ -312,21 +316,14 @@ def cmd_fast(args):
         num_workers=workers,
         checkpoint_dir=checkpoint_dir,
         checkpoint_interval=args.checkpoint_interval,
+        export_dir=export_dir,
+        s_max=args.s_max,
+        t_max=args.t_max,
         progress_callback=progress
     )
 
     print()
     print(f"Done! Total graphs: {registry.total_graphs():,}")
-
-    # Export results
-    if args.export_dir:
-        export_dir = Path(args.export_dir)
-        print(f"\nExporting to {export_dir}...")
-        for s in range(2, args.s_max + 1):
-            for t in range(s, args.t_max + 1):
-                path = export_dir / f"extremal_K{s}{t}.json"
-                export_extremal_analysis(registry, s, t, path)
-                print(f"  Exported K_{{{s},{t}}} analysis")
 
     # Check conjecture
     if args.check:

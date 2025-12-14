@@ -98,6 +98,9 @@ def build_fast(
     num_workers: int | None = None,
     checkpoint_dir: Path | None = None,
     checkpoint_interval: int = 5,
+    export_dir: Path | None = None,
+    s_max: int = 7,
+    t_max: int = 7,
     progress_callback: Callable[[int, int, int, int, int, int, float], None] | None = None
 ) -> FastRegistry:
     """
@@ -109,6 +112,9 @@ def build_fast(
         num_workers: Number of parallel workers (default: cpu_count)
         checkpoint_dir: Directory for checkpoints (None = no checkpoints)
         checkpoint_interval: Save checkpoint every N vertex counts
+        export_dir: Directory for incremental exports (None = no exports)
+        s_max: Maximum s value for exports
+        t_max: Maximum t value for exports
         progress_callback: callback(n, N, added, profiles, total, cumulative, time_sec)
 
     Returns:
@@ -193,6 +199,13 @@ def build_fast(
                 elapsed
             )
 
+        # Incremental export after each n
+        if export_dir:
+            for s in range(2, min(s_max, T or s_max) + 1):
+                for t in range(s, min(t_max, T or t_max) + 1):
+                    export_path = export_dir / f"extremal_K{s}{t}.json"
+                    export_extremal_analysis(registry, s, t, export_path)
+
         # Checkpoint
         if checkpoint_dir and target_n % checkpoint_interval == 0:
             checkpoint_path = checkpoint_dir / f"checkpoint_N{N}_T{T}.pkl"
@@ -228,13 +241,13 @@ def export_extremal_analysis(
             continue
 
         structures = []
-        for edges, profile, graph in candidates:
+        for edges, profile, profile_hash, graph in candidates:
             # Find this graph's index
-            graphs_list = registry._graphs[n][hash(profile.tobytes())]
+            graphs_list = registry._graphs[n][profile_hash]
             idx = graphs_list.index(graph) if graph in graphs_list else 0
 
             struct_str = registry.reconstruct_structure(
-                n, hash(profile.tobytes()), idx
+                n, profile_hash, idx
             )
 
             structures.append({
@@ -284,16 +297,16 @@ def check_conjecture_fast(
             for n in range(1, registry.max_n() + 1):
                 candidates = registry.get_avoiding(n, s, t)
 
-                for edges, profile, graph in candidates:
+                for edges, profile, profile_hash, graph in candidates:
                     if graph.op != "p" and graph.op != "v":
                         # Sum operation = disconnected
                         st_result["all_connected"] = False
                         results["all_connected"] = False
 
                         # Reconstruct structure for exception
-                        graphs_list = registry._graphs[n][hash(profile.tobytes())]
+                        graphs_list = registry._graphs[n][profile_hash]
                         idx = graphs_list.index(graph) if graph in graphs_list else 0
-                        struct = registry.reconstruct_structure(n, hash(profile.tobytes()), idx)
+                        struct = registry.reconstruct_structure(n, profile_hash, idx)
 
                         exception = {
                             "n": n,

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extremal Cograph Viewer - D3.js</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #f8f9fa;
+            overflow: hidden;
+        }
+
+        #app {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        #header {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        #header .stats {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        #sidebar {
+            background: white;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        #main {
+            background: white;
+            position: relative;
+        }
+
+        #info-panel {
+            background: white;
+            border-left: 1px solid #dee2e6;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .filter-group {
+            margin-bottom: 20px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 13px;
+            background: white;
+        }
+
+        .filter-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px 0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 8px 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.secondary:hover {
+            background: #5a6268;
+        }
+
+        #graph-list {
+            margin-top: 15px;
+        }
+
+        .graph-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .graph-item:hover {
+            background: #e9ecef;
+            transform: translateX(2px);
+        }
+
+        .graph-item.active {
+            background: #e7f1ff;
+            border-color: #667eea;
+        }
+
+        .graph-item.exceptional {
+            background: #fff3cd;
+            border-left: 3px solid #ffc107;
+        }
+
+        .graph-item.exceptional.active {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+
+        .graph-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .graph-meta {
+            font-size: 11px;
+            color: #6c757d;
+        }
+
+        .exceptional-badge {
+            display: inline-block;
+            background: #ffc107;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .node {
+            stroke: #fff;
+            stroke-width: 2px;
+            cursor: move;
+        }
+
+        .node:hover {
+            stroke: #ffc107;
+            stroke-width: 3px;
+        }
+
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.3;
+            stroke-width: 1.5px;
+        }
+
+        .link:hover {
+            stroke-opacity: 0.7;
+        }
+
+        .node-label {
+            font-size: 10px;
+            font-weight: 600;
+            fill: #333;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .slider-group {
+            margin: 15px 0;
+        }
+
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        .info-section {
+            margin-bottom: 20px;
+        }
+
+        .info-section h3 {
+            font-size: 14px;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 13px;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #6c757d;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 11px;
+            overflow-x: auto;
+            border: 1px solid #dee2e6;
+            max-height: 200px;
+        }
+
+        .controls-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+
+        .control-item {
+            margin-bottom: 10px;
+        }
+
+        .control-item:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="header">
+            <h1>Extremal Cograph Viewer</h1>
+            <div class="stats">
+                <span id="total-graphs">0</span> graphs loaded
+                | <span id="current-graph-label">Select a graph</span>
+            </div>
+        </div>
+
+        <div id="sidebar">
+            <h2>Filters</h2>
+
+            <div class="filter-group">
+                <label for="filter-st">Filter by K_{s,t}:</label>
+                <select id="filter-st">
+                    <option value="">All</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="filter-n">Filter by n:</label>
+                <select id="filter-n">
+                    <option value="">All</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="filter-exceptional">
+                    Show only exceptional cases
+                </label>
+            </div>
+
+            <div class="button-group">
+                <button onclick="resetFilters()">Reset Filters</button>
+            </div>
+
+            <h2 style="margin-top: 20px;">Graphs</h2>
+            <div id="graph-list"></div>
+        </div>
+
+        <div id="main">
+            <div class="controls-panel">
+                <div class="control-item">
+                    <button onclick="togglePhysics()"id="physics-toggle">Freeze Physics</button>
+                </div>
+                <div class="control-item">
+                    <button onclick="toggleLabels()" class="secondary">Toggle Labels</button>
+                </div>
+                <div class="control-item">
+                    <button onclick="resetPositions()" class="secondary">Reset Layout</button>
+                </div>
+                <div class="slider-group">
+                    <label>
+                        <span>Link Strength</span>
+                        <span id="link-strength-val">1.0</span>
+                    </label>
+                    <input type="range" id="link-strength" min="0" max="2" step="0.1" value="1">
+                </div>
+                <div class="slider-group">
+                    <label>
+                        <span>Charge Force</span>
+                        <span id="charge-strength-val">-30</span>
+                    </label>
+                    <input type="range" id="charge-strength" min="-100" max="0" step="5" value="-30">
+                </div>
+            </div>
+            <svg id="graph-svg"></svg>
+        </div>
+
+        <div id="info-panel">
+            <h2>Graph Information</h2>
+            <div id="info-content">
+                <p style="color: #6c757d; font-size: 13px;">Select a graph from the list to view details</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allGraphs = [];
+        let filteredGraphs = [];
+        let currentGraph = null;
+        let simulation = null;
+        let physicsEnabled = true;
+        let showLabels = true;
+
+        // SVG setup
+        const svg = d3.select("#graph-svg");
+        const width = document.getElementById("main").clientWidth;
+        const height = document.getElementById("main").clientHeight;
+
+        svg.attr("viewBox", [0, 0, width, height]);
+
+        const g = svg.append("g");
+        const linkGroup = g.append("g").attr("class", "links");
+        const nodeGroup = g.append("g").attr("class", "nodes");
+        const labelGroup = g.append("g").attr("class", "labels");
+
+        // Zoom
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 10])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        // Load data
+        d3.json("extremal_graphs.json").then(data => {
+            allGraphs = data;
+            initializeFilters();
+            applyFilters();
+        });
+
+        function initializeFilters() {
+            // Populate s,t filter
+            const stSet = new Set(allGraphs.map(g => `${g.s},${g.t}`));
+            const stSelect = d3.select("#filter-st");
+            Array.from(stSet).sort().forEach(st => {
+                const [s, t] = st.split(',');
+                stSelect.append("option")
+                    .attr("value", st)
+                    .text(`K_{${s},${t}}`);
+            });
+
+            // Populate n filter
+            const nSet = new Set(allGraphs.map(g => g.n));
+            const nSelect = d3.select("#filter-n");
+            Array.from(nSet).sort((a, b) => a - b).forEach(n => {
+                nSelect.append("option")
+                    .attr("value", n)
+                    .text(`n = ${n}`);
+            });
+
+            // Event listeners
+            d3.select("#filter-st").on("change", applyFilters);
+            d3.select("#filter-n").on("change", applyFilters);
+            d3.select("#filter-exceptional").on("change", applyFilters);
+
+            // Slider listeners
+            d3.select("#link-strength").on("input", updateLinkStrength);
+            d3.select("#charge-strength").on("input", updateChargeStrength);
+
+            d3.select("#total-graphs").text(allGraphs.length);
+        }
+
+        function applyFilters() {
+            const stFilter = d3.select("#filter-st").property("value");
+            const nFilter = d3.select("#filter-n").property("value");
+            const exceptionalOnly = d3.select("#filter-exceptional").property("checked");
+
+            filteredGraphs = allGraphs.filter(g => {
+                if (stFilter && `${g.s},${g.t}` !== stFilter) return false;
+                if (nFilter && g.n !== parseInt(nFilter)) return false;
+                if (exceptionalOnly && !g.is_exceptional) return false;
+                return true;
+            });
+
+            renderGraphList();
+        }
+
+        function resetFilters() {
+            d3.select("#filter-st").property("value", "");
+            d3.select("#filter-n").property("value", "");
+            d3.select("#filter-exceptional").property("checked", false);
+            applyFilters();
+        }
+
+        function renderGraphList() {
+            const list = d3.select("#graph-list");
+            list.selectAll("*").remove();
+
+            filteredGraphs.forEach((graph, i) => {
+                const item = list.append("div")
+                    .attr("class", `graph-item ${graph.is_exceptional ? 'exceptional' : ''}`)
+                    .on("click", () => loadGraph(graph));
+
+                item.append("div")
+                    .attr("class", "graph-label")
+                    .html(`${graph.label}${graph.is_exceptional ? '<span class="exceptional-badge">EXCEPTION</span>' : ''}`);
+
+                item.append("div")
+                    .attr("class", "graph-meta")
+                    .text(`V: ${graph.n} | E: ${graph.edges_count} | Struct ${graph.struct_index + 1}/${graph.total_structures}`);
+            });
+
+            // Auto-load first graph
+            if (filteredGraphs.length > 0 && !currentGraph) {
+                loadGraph(filteredGraphs[0]);
+            }
+        }
+
+        function loadGraph(graph) {
+            currentGraph = graph;
+
+            // Update active state
+            d3.selectAll(".graph-item").classed("active", false);
+            d3.selectAll(".graph-item").filter(function() {
+                return d3.select(this).text().includes(graph.label);
+            }).classed("active", true);
+
+            // Update header
+            d3.select("#current-graph-label").text(graph.label);
+
+            // Prepare data
+            const nodes = graph.nodes.map(n => ({...n}));
+            const links = graph.links.map(l => ({...l}));
+
+            // Color scale based on depth
+            const maxDepth = d3.max(nodes, d => d.depth) || 1;
+            const colorScale = d3.scaleSequential(d3.interpolateViridis)
+                .domain([0, maxDepth]);
+
+            // Clear existing
+            linkGroup.selectAll("*").remove();
+            nodeGroup.selectAll("*").remove();
+            labelGroup.selectAll("*").remove();
+
+            // Create force simulation
+            if (simulation) {
+                simulation.stop();
+            }
+
+            simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links)
+                    .id(d => d.id)
+                    .distance(50)
+                    .strength(1))
+                .force("charge", d3.forceManyBody()
+                    .strength(-30))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(15));
+
+            // Draw links
+            const link = linkGroup.selectAll("line")
+                .data(links)
+                .join("line")
+                .attr("class", "link");
+
+            // Draw nodes
+            const node = nodeGroup.selectAll("circle")
+                .data(nodes)
+                .join("circle")
+                .attr("class", "node")
+                .attr("r", 8)
+                .attr("fill", d => colorScale(d.depth))
+                .call(drag(simulation));
+
+            // Draw labels
+            const label = labelGroup.selectAll("text")
+                .data(nodes)
+                .join("text")
+                .attr("class", "node-label")
+                .attr("text-anchor", "middle")
+                .attr("dy", ".35em")
+                .text(d => showLabels ? d.id : "")
+                .style("pointer-events", "none");
+
+            // Update positions on tick
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y);
+
+                label
+                    .attr("x", d => d.x)
+                    .attr("y", d => d.y);
+            });
+
+            updateInfoPanel(graph);
+        }
+
+        function drag(simulation) {
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                if (!physicsEnabled) {
+                    d.fx = event.x;
+                    d.fy = event.y;
+                } else {
+                    d.fx = null;
+                    d.fy = null;
+                }
+            }
+
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+
+        function togglePhysics() {
+            physicsEnabled = !physicsEnabled;
+            const btn = document.getElementById("physics-toggle");
+
+            if (physicsEnabled) {
+                btn.textContent = "Freeze Physics";
+                if (simulation) {
+                    simulation.alpha(0.3).restart();
+                    // Unfix all nodes
+                    simulation.nodes().forEach(d => {
+                        d.fx = null;
+                        d.fy = null;
+                    });
+                }
+            } else {
+                btn.textContent = "Unfreeze Physics";
+                if (simulation) {
+                    simulation.stop();
+                }
+            }
+        }
+
+        function toggleLabels() {
+            showLabels = !showLabels;
+            labelGroup.selectAll("text")
+                .text(d => showLabels ? d.id : "");
+        }
+
+        function resetPositions() {
+            if (currentGraph) {
+                loadGraph(currentGraph);
+            }
+        }
+
+        function updateLinkStrength() {
+            const val = parseFloat(d3.select("#link-strength").property("value"));
+            d3.select("#link-strength-val").text(val.toFixed(1));
+
+            if (simulation) {
+                simulation.force("link").strength(val);
+                simulation.alpha(0.3).restart();
+            }
+        }
+
+        function updateChargeStrength() {
+            const val = parseFloat(d3.select("#charge-strength").property("value"));
+            d3.select("#charge-strength-val").text(val);
+
+            if (simulation) {
+                simulation.force("charge").strength(val);
+                simulation.alpha(0.3).restart();
+            }
+        }
+
+        function updateInfoPanel(graph) {
+            const content = d3.select("#info-content");
+            content.html("");
+
+            // Basic info
+            const basicInfo = content.append("div").attr("class", "info-section");
+            basicInfo.append("h3").text("Properties");
+
+            [
+                ["K_{s,t}", `K_{${graph.s},${graph.t}}`],
+                ["Vertices", graph.n],
+                ["Edges", graph.edges_count],
+                ["Structure #", `${graph.struct_index + 1} / ${graph.total_structures}`],
+                ["Exceptional", graph.is_exceptional ? "YES" : "No"]
+            ].forEach(([label, value]) => {
+                const row = basicInfo.append("div").attr("class", "info-row");
+                row.append("span").attr("class", "info-label").text(label);
+                row.append("span").attr("class", "info-value").text(value);
+            });
+
+            // Structure string
+            const structInfo = content.append("div").attr("class", "info-section");
+            structInfo.append("h3").text("Cotree Structure");
+            structInfo.append("pre").text(graph.structure);
+
+            // Node info
+            const nodeInfo = content.append("div").attr("class", "info-section");
+            nodeInfo.append("h3").text("Node Details");
+
+            const maxDepth = d3.max(graph.nodes, d => d.depth);
+            nodeInfo.append("div").attr("class", "info-row")
+                .html(`<span class="info-label">Max Depth</span><span class="info-value">${maxDepth}</span>`);
+
+            const depthCounts = d3.rollup(graph.nodes, v => v.length, d => d.depth);
+            const depthInfo = nodeInfo.append("pre");
+            depthInfo.text("Nodes per depth:\n" +
+                Array.from(depthCounts).sort((a, b) => a[0] - b[0])
+                    .map(([depth, count]) => `  Depth ${depth}: ${count} nodes`)
+                    .join("\n"));
+        }
+    </script>
+</body>
+</html>

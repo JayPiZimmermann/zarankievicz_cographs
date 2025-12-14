@@ -8,9 +8,8 @@ venv/
 dist/
 build/
 
-# Cache and exports
+# Cache
 cache/
-exports/
 
 # IDE
 .idea/
