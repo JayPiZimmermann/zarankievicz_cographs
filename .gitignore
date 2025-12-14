@@ -10,6 +10,7 @@ build/
 
 # Cache
 cache/
+exports_withDuplicates/
 
 # IDE
 .idea/
