@@ -55,10 +55,11 @@ class Registry:
             return True
         elif edges == max_edges:
             # Same edge count, add to list (different structure)
-            # Check if structure already exists
+            # Check if structure already exists using canonical form
+            canonical = cotree.canonical_str()
             for _, existing_ct in existing:
-                if existing_ct.structure_str() == cotree.structure_str():
-                    return False  # Already have this structure
+                if existing_ct.canonical_str() == canonical:
+                    return False  # Already have this structure (isomorphic)
             existing.append((edges, cotree))
             return True
         else:

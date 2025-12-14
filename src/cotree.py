@@ -74,18 +74,60 @@ class Cotree:
         object.__setattr__(self, "_profile", result)
         return result
 
+    def _collect_children_flat(self, target_op: str) -> list["Cotree"]:
+        """
+        Collect all children recursively, flattening nested same-type operations.
+
+        For example, P(a, P(b, c)) flattens to [a, b, c].
+        """
+        if self.op != target_op:
+            return [self]
+        result = []
+        for child in self.children:
+            result.extend(child._collect_children_flat(target_op))
+        return result
+
     def structure_str(self, use_n: bool = True) -> str:
         """
-        Human-readable structure string.
+        Human-readable structure string with flattened associative operations.
 
         Args:
             use_n: If True, show vertex count for leaves. If False, show "1".
+
+        Nested operations of the same type are flattened:
+        P(a, P(b, c)) becomes P(a,b,c)
         """
         if self.op == "vertex":
             return str(self.n) if use_n else "1"
         op_char = "S" if self.op == "sum" else "P"
-        children_str = ",".join(c.structure_str(use_n) for c in self.children)
+        # Flatten nested same-type operations
+        flat_children = self._collect_children_flat(self.op)
+        children_str = ",".join(c.structure_str(use_n) for c in flat_children)
         return f"{op_char}({children_str})"
+
+    def canonical_str(self) -> str:
+        """
+        Canonical structure string with sorted children and flattened operations.
+
+        Both sum and product operations are commutative and associative:
+        - P(A,B) = P(B,A) and P(A,P(B,C)) = P(A,B,C)
+        - S(A,B) = S(B,A) and S(A,S(B,C)) = S(A,B,C)
+
+        This method returns a unique canonical form by:
+        1. Flattening nested same-type operations
+        2. Sorting children lexicographically by their canonical representations
+
+        Returns:
+            Canonical string representation where isomorphic cotrees
+            produce identical strings.
+        """
+        if self.op == "vertex":
+            return "1"
+        op_char = "S" if self.op == "sum" else "P"
+        # Flatten nested same-type operations and recursively canonicalize
+        flat_children = self._collect_children_flat(self.op)
+        child_strs = sorted(c.canonical_str() for c in flat_children)
+        return f"{op_char}({','.join(child_strs)})"
 
     def __repr__(self) -> str:
         return f"Cotree({self.structure_str()}, n={self.n}, edges={self.edges})"

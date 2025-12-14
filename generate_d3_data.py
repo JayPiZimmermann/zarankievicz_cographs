@@ -21,12 +21,63 @@ class VertexLayouter:
     def __init__(self):
         self.vertex_id = 0
         self.vertex_info = {}  # vid -> {pos, group, depth, type}
+        self.component_id = 0
+        self.components = []  # list of {id, op, level, vertices}
 
-    def layout_cotree(self, node, cx=0, cy=0, width=1000, height=1000, depth=0, parent_id=None):
+    def _count_vertices(self, node):
+        """Count vertices in a subtree."""
+        if node.op == "vertex":
+            return 1
+        return sum(self._count_vertices(c) for c in node.children)
+
+    def _is_single_vertex(self, node):
+        """Check if node is a single vertex."""
+        return node.op == "vertex"
+
+    def _get_structure_type(self, node):
+        """
+        Analyze structure type for layout decisions.
+        Returns: 'vertex', 'clique', 'independent', 'multipartite', 'hub_star', 'general'
+        """
+        if node.op == "vertex":
+            return "vertex"
+
+        if node.op == "sum":
+            # Sum of vertices = independent set (no edges within)
+            if all(c.op == "vertex" for c in node.children):
+                return "independent"
+            return "general_sum"
+
+        if node.op == "product":
+            # Product of vertices = clique
+            if all(c.op == "vertex" for c in node.children):
+                return "clique"
+
+            # Check for hub pattern: one single vertex + other structures
+            single_vertices = [c for c in node.children if self._is_single_vertex(c)]
+            other_children = [c for c in node.children if not self._is_single_vertex(c)]
+
+            if len(single_vertices) == 1 and len(other_children) >= 1:
+                return "hub_star"
+
+            # Product of sums = complete multipartite
+            if all(c.op == "sum" or c.op == "vertex" for c in node.children):
+                return "multipartite"
+
+            return "general_product"
+
+        return "general"
+
+    def layout_cotree(self, node, cx=0, cy=0, width=1000, height=1000, depth=0, parent_id=None, component_path=None):
         """
         Recursively compute layout positions for cotree.
-        Returns: list of vertex info dicts
+        Returns: list of vertex info dicts, list of vertex ids
+
+        component_path: list of (component_id, op_type) tuples from root to current
         """
+        if component_path is None:
+            component_path = []
+
         if node.op == "vertex":
             vid = self.vertex_id
             self.vertex_id += 1
@@ -38,58 +89,273 @@ class VertexLayouter:
                 'depth': depth,
                 'type': 'vertex',
                 'group': parent_id if parent_id is not None else vid,
-                'parent': parent_id
+                'parent': parent_id,
+                'components': list(component_path)  # Copy the path
             }
             self.vertex_info[vid] = info
             return [info], [vid]
 
-        if node.op == "sum":
-            # Sum: clique - arrange children in circular pattern
-            return self._layout_sum(node, cx, cy, width, height, depth, parent_id)
+        structure = self._get_structure_type(node)
 
+        if structure == "hub_star":
+            return self._layout_hub_star(node, cx, cy, width, height, depth, parent_id, component_path)
+        elif structure == "multipartite":
+            return self._layout_multipartite(node, cx, cy, width, height, depth, parent_id, component_path)
+        elif node.op == "sum":
+            return self._layout_sum(node, cx, cy, width, height, depth, parent_id, component_path)
         elif node.op == "product":
-            # Product: independent sets - arrange in separated groups
-            return self._layout_product(node, cx, cy, width, height, depth, parent_id)
+            return self._layout_product(node, cx, cy, width, height, depth, parent_id, component_path)
 
         return [], []
 
-    def _layout_sum(self, node, cx, cy, width, height, depth, parent_id):
-        """Layout sum node: arrange children in circular cluster."""
-        group_id = self.vertex_id  # Use first vertex ID as group ID
+    def _layout_hub_star(self, node, cx, cy, width, height, depth, parent_id, component_path):
+        """
+        Layout hub-star pattern: central vertex connected to multiple structures.
+        Places hub in center, arranges other children radially.
+        """
+        center_x = cx + width / 2
+        center_y = cy + height / 2
+
+        # Separate hub vertex from other children
+        hub_child = None
+        other_children = []
+        for child in node.children:
+            if self._is_single_vertex(child) and hub_child is None:
+                hub_child = child
+            else:
+                other_children.append(child)
 
         all_infos = []
         all_vids = []
 
-        # First pass: get all children
-        child_results = []
-        for child in node.children:
+        # Create component for this product node
+        parent_comp_id = self.component_id
+        self.component_id += 1
+
+        # Layout hub vertex at center (component 0)
+        group_id = self.vertex_id
+        hub_comp_path = component_path + [{'id': parent_comp_id, 'op': 'product', 'child': 0, 'level': depth}]
+        hub_infos, hub_vids = self.layout_cotree(
+            hub_child, cx, cy, width, height, depth + 1, group_id, hub_comp_path
+        )
+        # Force hub to exact center
+        for vid in hub_vids:
+            self.vertex_info[vid]['x'] = center_x
+            self.vertex_info[vid]['y'] = center_y
+            self.vertex_info[vid]['is_hub'] = True
+        all_infos.extend(hub_infos)
+        all_vids.extend(hub_vids)
+
+        # Layout other children radially
+        n_branches = len(other_children)
+        if n_branches == 0:
+            return all_infos, all_vids
+
+        # Calculate sizes for proportional angular allocation
+        branch_sizes = [self._count_vertices(c) for c in other_children]
+        total_size = sum(branch_sizes)
+
+        # Radial distance based on total graph size
+        base_radius = min(width, height) * 0.35
+
+        current_angle = -math.pi / 2  # Start from top
+
+        for i, (child, size) in enumerate(zip(other_children, branch_sizes)):
+            # Angular span proportional to size
+            angle_span = 2 * math.pi * size / total_size
+            branch_angle = current_angle + angle_span / 2
+
+            # Distance from center - larger branches go further out
+            branch_radius = base_radius * (0.8 + 0.4 * size / max(branch_sizes))
+
+            # Calculate bounding box for this branch
+            branch_cx = center_x + branch_radius * math.cos(branch_angle)
+            branch_cy = center_y + branch_radius * math.sin(branch_angle)
+
+            # Size of branch area
+            branch_size = min(width, height) * 0.3 * math.sqrt(size / total_size)
+
+            # Component path for this child (child index i+1, since hub is 0)
+            child_comp_path = component_path + [{'id': parent_comp_id, 'op': 'product', 'child': i + 1, 'level': depth}]
+
             infos, vids = self.layout_cotree(
-                child, cx, cy, width, height, depth + 1, group_id
+                child,
+                branch_cx - branch_size / 2,
+                branch_cy - branch_size / 2,
+                branch_size, branch_size,
+                depth + 1, group_id, child_comp_path
+            )
+
+            # Mark branch membership
+            for vid in vids:
+                self.vertex_info[vid]['branch'] = i
+                self.vertex_info[vid]['branch_angle'] = branch_angle
+
+            all_infos.extend(infos)
+            all_vids.extend(vids)
+
+            current_angle += angle_span
+
+        return all_infos, all_vids
+
+    def _layout_multipartite(self, node, cx, cy, width, height, depth, parent_id, component_path):
+        """
+        Layout complete multipartite graph: product of independent sets.
+        Arranges parts radially with vertices of each part clustered.
+        """
+        center_x = cx + width / 2
+        center_y = cy + height / 2
+
+        all_infos = []
+        all_vids = []
+
+        n_parts = len(node.children)
+        if n_parts == 0:
+            return all_infos, all_vids
+
+        group_id = self.vertex_id
+
+        # For small number of parts, use radial layout
+        # For 2 parts (bipartite), use left-right layout
+        if n_parts == 2:
+            return self._layout_bipartite(node, cx, cy, width, height, depth, parent_id, component_path)
+
+        # Create component for this product node
+        parent_comp_id = self.component_id
+        self.component_id += 1
+
+        base_radius = min(width, height) * 0.35
+
+        for i, child in enumerate(node.children):
+            angle = 2 * math.pi * i / n_parts - math.pi / 2
+
+            part_cx = center_x + base_radius * math.cos(angle)
+            part_cy = center_y + base_radius * math.sin(angle)
+
+            # Size for this part
+            part_size = min(width, height) * 0.25
+
+            # Component path for this child
+            child_comp_path = component_path + [{'id': parent_comp_id, 'op': 'product', 'child': i, 'level': depth}]
+
+            infos, vids = self.layout_cotree(
+                child,
+                part_cx - part_size / 2,
+                part_cy - part_size / 2,
+                part_size, part_size,
+                depth + 1, group_id, child_comp_path
+            )
+
+            # Mark part membership
+            for vid in vids:
+                self.vertex_info[vid]['multipartite_part'] = i
+
+            all_infos.extend(infos)
+            all_vids.extend(vids)
+
+        return all_infos, all_vids
+
+    def _layout_bipartite(self, node, cx, cy, width, height, depth, parent_id, component_path):
+        """Layout bipartite graph with two columns."""
+        all_infos = []
+        all_vids = []
+
+        group_id = self.vertex_id
+
+        # Create component for this product node
+        parent_comp_id = self.component_id
+        self.component_id += 1
+
+        left_child = node.children[0]
+        right_child = node.children[1]
+
+        # Left side (component 0)
+        left_comp_path = component_path + [{'id': parent_comp_id, 'op': 'product', 'child': 0, 'level': depth}]
+        left_infos, left_vids = self.layout_cotree(
+            left_child,
+            cx + width * 0.1, cy,
+            width * 0.3, height,
+            depth + 1, group_id, left_comp_path
+        )
+        for vid in left_vids:
+            self.vertex_info[vid]['bipartite_side'] = 'left'
+        all_infos.extend(left_infos)
+        all_vids.extend(left_vids)
+
+        # Right side (component 1)
+        right_comp_path = component_path + [{'id': parent_comp_id, 'op': 'product', 'child': 1, 'level': depth}]
+        right_infos, right_vids = self.layout_cotree(
+            right_child,
+            cx + width * 0.6, cy,
+            width * 0.3, height,
+            depth + 1, group_id, right_comp_path
+        )
+        for vid in right_vids:
+            self.vertex_info[vid]['bipartite_side'] = 'right'
+        all_infos.extend(right_infos)
+        all_vids.extend(right_vids)
+
+        return all_infos, all_vids
+
+    def _layout_sum(self, node, cx, cy, width, height, depth, parent_id, component_path):
+        """Layout sum node: arrange children in compact cluster (they form independent set)."""
+        group_id = self.vertex_id
+
+        all_infos = []
+        all_vids = []
+
+        # Create component for this sum node
+        parent_comp_id = self.component_id
+        self.component_id += 1
+
+        # First pass: collect all children with component tracking
+        child_results = []
+        for i, child in enumerate(node.children):
+            child_comp_path = component_path + [{'id': parent_comp_id, 'op': 'sum', 'child': i, 'level': depth}]
+            infos, vids = self.layout_cotree(
+                child, cx, cy, width, height, depth + 1, group_id, child_comp_path
             )
             child_results.append((infos, vids))
             all_infos.extend(infos)
             all_vids.extend(vids)
 
-        # Arrange in circle
+        # Arrange in compact grid or circle
         n_vertices = len(all_vids)
         if n_vertices == 0:
             return all_infos, all_vids
 
-        radius = min(width, height) * 0.35
         center_x = cx + width / 2
         center_y = cy + height / 2
 
-        # Distribute vertices around circle
-        for i, vid in enumerate(all_vids):
-            angle = 2 * math.pi * i / n_vertices
-            self.vertex_info[vid]['x'] = center_x + radius * math.cos(angle)
-            self.vertex_info[vid]['y'] = center_y + radius * math.sin(angle)
+        if n_vertices <= 6:
+            # Small: arrange in circle
+            radius = min(width, height) * 0.25
+            for i, vid in enumerate(all_vids):
+                angle = 2 * math.pi * i / n_vertices - math.pi / 2
+                self.vertex_info[vid]['x'] = center_x + radius * math.cos(angle)
+                self.vertex_info[vid]['y'] = center_y + radius * math.sin(angle)
+        else:
+            # Larger: arrange in grid
+            cols = math.ceil(math.sqrt(n_vertices))
+            rows = math.ceil(n_vertices / cols)
+            spacing = min(width, height) * 0.8 / max(cols, rows)
+
+            start_x = center_x - (cols - 1) * spacing / 2
+            start_y = center_y - (rows - 1) * spacing / 2
+
+            for i, vid in enumerate(all_vids):
+                row = i // cols
+                col = i % cols
+                self.vertex_info[vid]['x'] = start_x + col * spacing
+                self.vertex_info[vid]['y'] = start_y + row * spacing
+
+        for vid in all_vids:
             self.vertex_info[vid]['sum_group'] = group_id
 
         return all_infos, all_vids
 
-    def _layout_product(self, node, cx, cy, width, height, depth, parent_id):
-        """Layout product node: arrange children in separated horizontal groups."""
+    def _layout_product(self, node, cx, cy, width, height, depth, parent_id, component_path):
+        """Layout product node: arrange children radially (they form complete multipartite)."""
         all_infos = []
         all_vids = []
 
@@ -97,23 +363,39 @@ class VertexLayouter:
         if n_children == 0:
             return all_infos, all_vids
 
-        # Calculate horizontal spacing for children
-        child_width = width / n_children
-        gap = child_width * 0.1  # 10% gap between groups
+        group_id = self.vertex_id
+        center_x = cx + width / 2
+        center_y = cy + height / 2
+
+        # Create component for this product node
+        parent_comp_id = self.component_id
+        self.component_id += 1
+
+        # Radial arrangement for products
+        base_radius = min(width, height) * 0.3
 
         for i, child in enumerate(node.children):
-            child_cx = cx + i * child_width + gap / 2
-            child_width_actual = child_width - gap
+            angle = 2 * math.pi * i / n_children - math.pi / 2
+
+            child_cx = center_x + base_radius * math.cos(angle)
+            child_cy = center_y + base_radius * math.sin(angle)
+
+            child_size = min(width, height) * 0.35
+
+            # Component path for this child
+            child_comp_path = component_path + [{'id': parent_comp_id, 'op': 'product', 'child': i, 'level': depth}]
 
             infos, vids = self.layout_cotree(
-                child, child_cx, cy, child_width_actual, height,
-                depth + 1, parent_id
+                child,
+                child_cx - child_size / 2,
+                child_cy - child_size / 2,
+                child_size, child_size,
+                depth + 1, group_id, child_comp_path
             )
 
             all_infos.extend(infos)
             all_vids.extend(vids)
 
-            # Mark as product group
             for vid in vids:
                 self.vertex_info[vid]['product_group'] = i
                 self.vertex_info[vid]['product_parent'] = parent_id

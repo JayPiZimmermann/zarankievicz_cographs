@@ -27,25 +27,46 @@ class StructureNode:
     def __repr__(self):
         if self.op == "vertex":
             return f"V({self.n})"
-        elif self.op == "sum":
-            return f"S({self.children[0]},{self.children[1]})"
-        else:  # product
-            return f"P({self.children[0]},{self.children[1]})"
+        op_char = "S" if self.op == "sum" else "P"
+        children_repr = ",".join(repr(c) for c in self.children)
+        return f"{op_char}({children_repr})"
+
+    def _collect_children_flat(self, target_op: str) -> List['StructureNode']:
+        """Collect all children, flattening nested same-type operations."""
+        if self.op != target_op:
+            return [self]
+        result = []
+        for child in self.children:
+            result.extend(child._collect_children_flat(target_op))
+        return result
 
     def to_short_str(self):
-        """Compact representation."""
+        """Compact representation with flattened associative operations."""
         if self.op == "vertex":
             return "1" if self.n == 1 else f"{self.n}"
         op_char = "S" if self.op == "sum" else "P"
-        return f"{op_char}({self.children[0].to_short_str()},{self.children[1].to_short_str()})"
+        # Flatten nested same-type operations
+        flat_children = self._collect_children_flat(self.op)
+        return f"{op_char}({','.join(c.to_short_str() for c in flat_children)})"
+
+    def to_canonical_str(self):
+        """Canonical representation with sorted, flattened children."""
+        if self.op == "vertex":
+            return "1" if self.n == 1 else f"{self.n}"
+        op_char = "S" if self.op == "sum" else "P"
+        # Flatten and sort
+        flat_children = self._collect_children_flat(self.op)
+        child_strs = sorted(c.to_canonical_str() for c in flat_children)
+        return f"{op_char}({','.join(child_strs)})"
 
 
 def parse_structure(s: str) -> StructureNode:
     """
-    Parse structure string like 'P(S(1,1),P(1,1))' into tree.
+    Parse structure string like 'P(S(1,1),P(1,1))' or flattened 'P(1,1,1)' into tree.
 
     Grammar:
-        struct ::= '1' | 'S(' struct ',' struct ')' | 'P(' struct ',' struct ')'
+        struct ::= '1' | 'S(' args ')' | 'P(' args ')'
+        args ::= struct (',' struct)*
     """
     s = s.strip()
 
@@ -56,35 +77,41 @@ def parse_structure(s: str) -> StructureNode:
     if s[0] in ['S', 'P']:
         op = "sum" if s[0] == 'S' else "product"
 
-        # Find the matching comma at the top level
-        # Parse S( or P(
         assert s[1] == '(', f"Expected '(' after {s[0]}"
-
-        # Find matching comma and closing paren
-        depth = 0
-        comma_pos = -1
-        for i in range(2, len(s)):
-            if s[i] == '(':
-                depth += 1
-            elif s[i] == ')':
-                depth -= 1
-            elif s[i] == ',' and depth == 0:
-                comma_pos = i
-                break
-
-        assert comma_pos > 0, f"Could not find comma in {s}"
         assert s[-1] == ')', f"Expected ')' at end of {s}"
 
-        left_str = s[2:comma_pos]
-        right_str = s[comma_pos+1:-1]
+        # Split arguments at top-level commas
+        inner = s[2:-1]
+        args = _split_args(inner)
 
-        left = parse_structure(left_str)
-        right = parse_structure(right_str)
+        children = [parse_structure(arg) for arg in args]
+        n = sum(c.n for c in children)
 
-        n = left.n + right.n
-        return StructureNode(op=op, n=n, children=[left, right])
+        return StructureNode(op=op, n=n, children=children)
 
     raise ValueError(f"Could not parse structure: {s}")
+
+
+def _split_args(s: str) -> List[str]:
+    """Split comma-separated arguments respecting parentheses nesting."""
+    args = []
+    depth = 0
+    start = 0
+
+    for i, c in enumerate(s):
+        if c == '(':
+            depth += 1
+        elif c == ')':
+            depth -= 1
+        elif c == ',' and depth == 0:
+            args.append(s[start:i].strip())
+            start = i + 1
+
+    # Don't forget the last argument
+    if start < len(s):
+        args.append(s[start:].strip())
+
+    return args
 
 
 def count_vertices(node: StructureNode) -> int:
@@ -115,38 +142,48 @@ def analyze_structure(node: StructureNode, depth=0) -> dict:
         info["clique_size"] = node.n
         return info
 
-    # Recurse on children
-    left_info = analyze_structure(node.children[0], depth + 1)
-    right_info = analyze_structure(node.children[1], depth + 1)
-
-    info["left"] = left_info
-    info["right"] = right_info
-    info["component_sizes"] = [node.children[0].n, node.children[1].n]
+    # Recurse on children (now supports multiple children)
+    child_infos = [analyze_structure(c, depth + 1) for c in node.children]
+    info["children"] = child_infos
+    info["component_sizes"] = [c.n for c in node.children]
 
     if node.op == "sum":
         # Sum = disjoint union
         # Check if it's a clique partition (all components are cliques)
-        left_cliques = get_clique_partition(node.children[0])
-        right_cliques = get_clique_partition(node.children[1])
+        all_cliques = []
+        is_partition = True
+        for child in node.children:
+            cliques = get_clique_partition(child)
+            if cliques is None:
+                is_partition = False
+                break
+            all_cliques.extend(cliques)
 
-        if left_cliques is not None and right_cliques is not None:
+        if is_partition:
             info["is_clique_partition"] = True
-            info["clique_sizes"] = left_cliques + right_cliques
+            info["clique_sizes"] = all_cliques
         else:
             info["is_clique_partition"] = False
 
     elif node.op == "product":
         # Product = complete join
-        # Check if sides are clique partitions
-        left_cliques = get_clique_partition(node.children[0])
-        right_cliques = get_clique_partition(node.children[1])
+        # Check if all sides are clique partitions
+        all_cliques = []
+        is_multipartite = True
+        child_cliques_list = []
+        for child in node.children:
+            cliques = get_clique_partition(child)
+            child_cliques_list.append(cliques)
+            if cliques is None:
+                is_multipartite = False
+            else:
+                all_cliques.extend(cliques)
 
-        info["left_cliques"] = left_cliques
-        info["right_cliques"] = right_cliques
+        info["child_cliques"] = child_cliques_list
 
-        if left_cliques is not None and right_cliques is not None:
+        if is_multipartite:
             info["is_complete_multipartite"] = True
-            info["partition_sizes"] = left_cliques + right_cliques
+            info["partition_sizes"] = all_cliques
         else:
             info["is_complete_multipartite"] = False
 
@@ -162,12 +199,13 @@ def get_clique_partition(node: StructureNode) -> List[int] | None:
         return [node.n]
 
     if node.op == "sum":
-        left = get_clique_partition(node.children[0])
-        right = get_clique_partition(node.children[1])
-
-        if left is not None and right is not None:
-            return left + right
-        return None
+        result = []
+        for child in node.children:
+            child_cliques = get_clique_partition(child)
+            if child_cliques is None:
+                return None
+            result.extend(child_cliques)
+        return result
 
     # Product is not a clique partition
     return None
@@ -196,14 +234,12 @@ def get_structure_pattern(node: StructureNode) -> str:
         if cliques:
             return f"sum_of_cliques_{sorted(cliques, reverse=True)}"
         else:
-            left = get_structure_pattern(node.children[0])
-            right = get_structure_pattern(node.children[1])
-            return f"sum({left}, {right})"
+            child_patterns = [get_structure_pattern(c) for c in node.children]
+            return f"sum({', '.join(child_patterns)})"
 
     # Product
-    left = get_structure_pattern(node.children[0])
-    right = get_structure_pattern(node.children[1])
-    return f"product({left}, {right})"
+    child_patterns = [get_structure_pattern(c) for c in node.children]
+    return f"product({', '.join(child_patterns)})"
 
 
 def check_conjecture_1(node: StructureNode, n: int, s: int, t: int) -> dict:
@@ -227,12 +263,12 @@ def check_conjecture_1(node: StructureNode, n: int, s: int, t: int) -> dict:
         result["details"] = f"Not product"
         return result
 
-    actual_sizes = sorted([node.children[0].n, node.children[1].n])
+    actual_sizes = sorted([c.n for c in node.children])
     result["actual_sizes"] = actual_sizes
 
     # Conjecture only applies when n >= s
     if n < s:
-        result["details"] = f"n<s, P({actual_sizes[0]},{actual_sizes[1]})"
+        result["details"] = f"n<s, P({','.join(map(str, actual_sizes))})"
         return result
 
     expected_sizes = sorted([s - 1, n - s + 1])
@@ -242,7 +278,7 @@ def check_conjecture_1(node: StructureNode, n: int, s: int, t: int) -> dict:
         result["holds"] = True
         result["details"] = f"✓"
     else:
-        result["details"] = f"P({actual_sizes[0]},{actual_sizes[1]})≠P({expected_sizes[0]},{expected_sizes[1]})"
+        result["details"] = f"P({','.join(map(str, actual_sizes))})≠P({expected_sizes[0]},{expected_sizes[1]})"
 
     return result
 
@@ -251,7 +287,7 @@ def check_conjecture_2(node: StructureNode, n: int, s: int, t: int) -> dict:
     """
     Conjecture 2: Structure is either:
     a) Complete multipartite graph (product of clique partitions)
-    b) One side fully connected, other side is clique partition
+    b) All but one side is clique partition, one side is complex
 
     Returns detailed analysis.
     """
@@ -265,38 +301,34 @@ def check_conjecture_2(node: StructureNode, n: int, s: int, t: int) -> dict:
         result["details"] = "Not a product graph"
         return result
 
-    left = node.children[0]
-    right = node.children[1]
+    # Get clique partitions for all children
+    child_cliques = [get_clique_partition(c) for c in node.children]
 
-    left_cliques = get_clique_partition(left)
-    right_cliques = get_clique_partition(right)
-
-    # Case a: Both sides are clique partitions
-    if left_cliques is not None and right_cliques is not None:
+    # Case a: All children are clique partitions = complete multipartite
+    if all(cp is not None for cp in child_cliques):
         result["holds"] = True
         result["case"] = "complete_multipartite"
-        result["details"] = f"Complete multipartite: partition {left_cliques} × {right_cliques}"
-        result["left_cliques"] = left_cliques
-        result["right_cliques"] = right_cliques
+        all_cliques = []
+        for cp in child_cliques:
+            all_cliques.extend(cp)
+        result["details"] = f"Complete multipartite: partition {all_cliques}"
+        result["child_cliques"] = child_cliques
         return result
 
-    # Case b: One side fully connected (single clique), other is clique partition
-    if left_cliques is not None and len(left_cliques) == 1 and right_cliques is None:
-        result["holds"] = True
-        result["case"] = "one_clique_vs_complex"
-        result["details"] = f"Left is single clique {left_cliques[0]}, right is complex"
-        result["left_cliques"] = left_cliques
-        return result
+    # Case b: All but one are single cliques, one is complex
+    complex_children = [i for i, cp in enumerate(child_cliques) if cp is None]
+    single_clique_children = [i for i, cp in enumerate(child_cliques) if cp is not None and len(cp) == 1]
 
-    if right_cliques is not None and len(right_cliques) == 1 and left_cliques is None:
+    if len(complex_children) == 1 and len(single_clique_children) == len(node.children) - 1:
         result["holds"] = True
-        result["case"] = "one_clique_vs_complex"
-        result["details"] = f"Right is single clique {right_cliques[0]}, left is complex"
-        result["right_cliques"] = right_cliques
+        result["case"] = "one_complex_vs_cliques"
+        clique_sizes = [child_cliques[i][0] for i in single_clique_children]
+        result["details"] = f"Cliques {clique_sizes} × complex child {complex_children[0]}"
+        result["child_cliques"] = child_cliques
         return result
 
     # Neither case holds
-    result["details"] = f"Neither case: left_cliques={left_cliques}, right_cliques={right_cliques}"
+    result["details"] = f"Neither case: child_cliques={child_cliques}"
 
     return result
 

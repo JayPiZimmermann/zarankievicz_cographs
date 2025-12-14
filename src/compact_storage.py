@@ -82,7 +82,7 @@ class FastRegistry:
         """
         Add a graph to the registry if it's extremal.
 
-        Returns True if added, False if not extremal.
+        Returns True if added, False if not extremal or duplicate.
         """
         profile_hash = self._hash_profile(profile)
 
@@ -92,9 +92,16 @@ class FastRegistry:
             if edges < max_e:
                 return False  # Not extremal
             elif edges == max_e:
-                # Same edge count - add if structure is new
-                # For now, always add (dedup later)
-                pass
+                # Same edge count - add only if structure is new (canonical check)
+                new_canonical = self._compute_canonical_for_new(
+                    op, child1_n, child1_hash, child1_idx,
+                    child2_n, child2_hash, child2_idx
+                )
+                # Check against existing graphs
+                existing_graphs = self._graphs[n][profile_hash]
+                for idx in range(len(existing_graphs)):
+                    if self.reconstruct_canonical(n, profile_hash, idx) == new_canonical:
+                        return False  # Duplicate (isomorphic)
             else:
                 # New maximum - clear old and add
                 self._graphs[n][profile_hash] = []
@@ -184,31 +191,105 @@ class FastRegistry:
 
         return candidates
 
+    def _collect_children_flat(
+        self,
+        n: int,
+        profile_hash: int,
+        graph_idx: int,
+        target_op: str,
+        use_canonical: bool = False
+    ) -> list[str]:
+        """
+        Collect all child strings, flattening nested same-type operations.
+
+        For example, P(a, P(b, c)) flattens to [a, b, c].
+        """
+        graph = self._graphs[n][profile_hash][graph_idx]
+
+        if graph.op == "v":
+            return ["1"]
+
+        if graph.op != target_op:
+            # Different operation type, return as single child
+            if use_canonical:
+                return [self.reconstruct_canonical(n, profile_hash, graph_idx)]
+            else:
+                return [self.reconstruct_structure(n, profile_hash, graph_idx)]
+
+        # Same operation type, recursively collect children
+        result = []
+        result.extend(self._collect_children_flat(
+            graph.child1_n, graph.child1_profile_hash, graph.child1_idx,
+            target_op, use_canonical
+        ))
+        result.extend(self._collect_children_flat(
+            graph.child2_n, graph.child2_profile_hash, graph.child2_idx,
+            target_op, use_canonical
+        ))
+        return result
+
     def reconstruct_structure(self, n: int, profile_hash: int, graph_idx: int) -> str:
         """
         Lazily reconstruct structure string for a graph.
 
-        This traverses the construction tree to build the string.
+        Flattens nested same-type operations: P(a,P(b,c)) becomes P(a,b,c).
         """
         graph = self._graphs[n][profile_hash][graph_idx]
 
         if graph.op == "v":
             return "1"
 
-        # Recursively get child structures
-        child1_str = self.reconstruct_structure(
-            graph.child1_n,
-            graph.child1_profile_hash,
-            graph.child1_idx
+        op_char = "S" if graph.op == "s" else "P"
+        # Flatten nested same-type operations
+        child_strs = self._collect_children_flat(
+            n, profile_hash, graph_idx, graph.op, use_canonical=False
         )
-        child2_str = self.reconstruct_structure(
-            graph.child2_n,
-            graph.child2_profile_hash,
-            graph.child2_idx
-        )
+        return f"{op_char}({','.join(child_strs)})"
+
+    def reconstruct_canonical(self, n: int, profile_hash: int, graph_idx: int) -> str:
+        """
+        Reconstruct canonical structure string for a graph.
+
+        Flattens nested same-type operations and sorts children lexicographically
+        to ensure isomorphic graphs produce identical strings.
+        """
+        graph = self._graphs[n][profile_hash][graph_idx]
+
+        if graph.op == "v":
+            return "1"
 
         op_char = "S" if graph.op == "s" else "P"
-        return f"{op_char}({child1_str},{child2_str})"
+        # Flatten nested same-type operations and sort
+        child_strs = self._collect_children_flat(
+            n, profile_hash, graph_idx, graph.op, use_canonical=True
+        )
+        child_strs.sort()
+        return f"{op_char}({','.join(child_strs)})"
+
+    def _compute_canonical_for_new(
+        self,
+        op: Literal["s", "p"],
+        child1_n: int,
+        child1_hash: int,
+        child1_idx: int,
+        child2_n: int,
+        child2_hash: int,
+        child2_idx: int
+    ) -> str:
+        """Compute canonical string for a graph being added (before it's in registry)."""
+        target_op = op
+        # Collect and flatten children
+        child_strs = []
+        child_strs.extend(self._collect_children_flat(
+            child1_n, child1_hash, child1_idx, target_op, use_canonical=True
+        ))
+        child_strs.extend(self._collect_children_flat(
+            child2_n, child2_hash, child2_idx, target_op, use_canonical=True
+        ))
+        child_strs.sort()
+
+        op_char = "S" if op == "s" else "P"
+        return f"{op_char}({','.join(child_strs)})"
 
     def save_checkpoint(self, path: Path, completed_n: int):
         """Save registry to binary file."""
