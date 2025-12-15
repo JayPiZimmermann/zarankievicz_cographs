@@ -29,6 +29,7 @@ from src.incremental_cache import IncrementalRegistry, list_runs
 from src.incremental_builder import build_incremental, check_conjecture, analyze_extremal_structure
 from src.fast_builder import build_fast, check_conjecture_fast, export_extremal_analysis
 from src.compact_storage import FastRegistry
+from src.partition_builder import build_range, check_conjecture_partition
 
 
 def cmd_build(args):
@@ -363,6 +364,87 @@ def cmd_fast(args):
     return registry
 
 
+def cmd_partition(args):
+    """Partition-based build: compute each n from n'+n'' partitions."""
+    from multiprocessing import cpu_count
+
+    start_n = args.start_n
+    end_n = args.end_n
+    T = args.T
+    workers = args.workers or cpu_count()
+
+    print(f"Partition-based build: n=[{start_n}..{end_n}], T={T}, workers={workers}")
+    print(f"Checkpoint dir: {args.checkpoint_dir or 'disabled'}")
+    if args.export_dir:
+        print(f"Export dir: {args.export_dir} (incremental)")
+        print(f"Exporting K_{{s,t}} for s,t in [1..{args.s_max}] x [1..{args.t_max}]")
+    if args.profile_domination:
+        print("Profile domination: ENABLED (batch mode)")
+    if args.profile_domination_lattice:
+        print("Profile domination: ENABLED (lattice mode - pre-filter combinations)")
+    if args.depth_domination:
+        print("Depth domination: ENABLED")
+    print()
+    print("NOTE: Each n is computed independently from partitions n'+n''=n")
+    print("      This makes computation independent of end_n, enabling true incremental updates")
+    print()
+
+    checkpoint_dir = Path(args.checkpoint_dir) if args.checkpoint_dir else None
+    export_dir = Path(args.export_dir) if args.export_dir else None
+
+    def progress(n, end_n, added, profiles, total_n_graphs, cumulative, elapsed):
+        print(f"  n={n:3d}: +{added:6d} graphs, {profiles:5d} profiles, "
+              f"{total_n_graphs:6d} for n, {cumulative:8d} total, {elapsed:.1f}s")
+
+    registry = build_range(
+        start_n=start_n,
+        end_n=end_n,
+        registry=None,
+        T=T,
+        num_workers=workers,
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_interval=args.checkpoint_interval,
+        export_dir=export_dir,
+        s_max=args.s_max,
+        t_max=args.t_max,
+        use_profile_domination=args.profile_domination,
+        use_profile_domination_lattice=args.profile_domination_lattice,
+        use_depth_domination=args.depth_domination,
+        progress_callback=progress
+    )
+
+    print()
+    print(f"Done! Total graphs: {registry.total_graphs():,}")
+
+    # Check conjecture
+    if args.check:
+        print("\nChecking conjecture...")
+        results = check_conjecture_partition(registry, s_min=1, s_max=args.s_max, t_max=args.t_max)
+
+        if results["all_connected"]:
+            print("RESULT: All extremal graphs for s,t >= 2 are CONNECTED (product)")
+        else:
+            print("RESULT: Found DISCONNECTED extremal graphs:")
+            for exc in results["exceptions"]:
+                print(f"  n={exc['n']}, K_{{{exc['s']},{exc['t']}}}: {exc['structure']}")
+
+        print("\nComponent size patterns:")
+        for key, st_result in results["by_st"].items():
+            if st_result["component_sizes"]:
+                sizes = st_result["component_sizes"]
+                # Group by n
+                by_n = {}
+                for n, size in sizes:
+                    if n not in by_n:
+                        by_n[n] = set()
+                    by_n[n].add(size)
+                print(f"  {key}: ", end="")
+                sample = [(n, sorted(s)) for n, s in sorted(by_n.items())[:5]]
+                print(", ".join(f"n={n}→{sizes}" for n, sizes in sample), "...")
+
+    return registry
+
+
 def _load_registry_for_query(args) -> Registry:
     """Load registry for query commands."""
     if hasattr(args, 'cache') and args.cache:
@@ -462,6 +544,22 @@ def main():
     fast_parser.add_argument("--depth-domination", action="store_true", help="Enable depth domination pruning")
     fast_parser.add_argument("--check", action="store_true", help="Check conjecture after build")
 
+    # partition command (N-independent build)
+    partition_parser = subparsers.add_parser("partition", help="Partition-based build (N-independent)")
+    partition_parser.add_argument("--start-n", type=int, default=2, help="Starting vertex count")
+    partition_parser.add_argument("--end-n", type=int, required=True, help="Ending vertex count")
+    partition_parser.add_argument("--T", type=int, help="Prune K_{T,T} containing graphs")
+    partition_parser.add_argument("--workers", "-w", type=int, help="Number of workers (default: cpu_count)")
+    partition_parser.add_argument("--checkpoint-dir", help="Directory for checkpoints")
+    partition_parser.add_argument("--checkpoint-interval", type=int, default=5, help="Checkpoint every N values")
+    partition_parser.add_argument("--export-dir", help="Export results to directory")
+    partition_parser.add_argument("--s-max", type=int, default=7, help="Max s for exports")
+    partition_parser.add_argument("--t-max", type=int, default=7, help="Max t for exports")
+    partition_parser.add_argument("--profile-domination", action="store_true", help="Enable profile domination pruning (batch mode)")
+    partition_parser.add_argument("--profile-domination-lattice", action="store_true", help="Enable lattice-based profile domination (pre-filter combinations)")
+    partition_parser.add_argument("--depth-domination", action="store_true", help="Enable depth domination pruning")
+    partition_parser.add_argument("--check", action="store_true", help="Check conjecture after build")
+
     args = parser.parse_args()
 
     if args.command == "build":
@@ -480,6 +578,8 @@ def main():
         cmd_runs(args)
     elif args.command == "fast":
         cmd_fast(args)
+    elif args.command == "partition":
+        cmd_partition(args)
     else:
         parser.print_help()
 

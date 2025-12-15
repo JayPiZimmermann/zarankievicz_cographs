@@ -1,0 +1,439 @@
+{
+  "s": 1,
+  "t": 1,
+  "max_n": 29,
+  "extremal_by_n": {
+    "1": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "1",
+          "edges": 0,
+          "last_op": "vertex",
+          "component_sizes": []
+        }
+      ]
+    },
+    "2": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    "3": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "4": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            3
+          ]
+        }
+      ]
+    },
+    "5": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            4
+          ]
+        }
+      ]
+    },
+    "6": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            5
+          ]
+        }
+      ]
+    },
+    "7": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            6
+          ]
+        }
+      ]
+    },
+    "8": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            7
+          ]
+        }
+      ]
+    },
+    "9": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            8
+          ]
+        }
+      ]
+    },
+    "10": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            9
+          ]
+        }
+      ]
+    },
+    "11": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            10
+          ]
+        }
+      ]
+    },
+    "12": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            11
+          ]
+        }
+      ]
+    },
+    "13": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            12
+          ]
+        }
+      ]
+    },
+    "14": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            13
+          ]
+        }
+      ]
+    },
+    "15": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            14
+          ]
+        }
+      ]
+    },
+    "16": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            15
+          ]
+        }
+      ]
+    },
+    "17": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            16
+          ]
+        }
+      ]
+    },
+    "18": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            17
+          ]
+        }
+      ]
+    },
+    "19": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            18
+          ]
+        }
+      ]
+    },
+    "20": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            19
+          ]
+        }
+      ]
+    },
+    "21": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            20
+          ]
+        }
+      ]
+    },
+    "22": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            21
+          ]
+        }
+      ]
+    },
+    "23": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            22
+          ]
+        }
+      ]
+    },
+    "24": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            23
+          ]
+        }
+      ]
+    },
+    "25": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            24
+          ]
+        }
+      ]
+    },
+    "26": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            25
+          ]
+        }
+      ]
+    },
+    "27": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            26
+          ]
+        }
+      ]
+    },
+    "28": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            27
+          ]
+        }
+      ]
+    },
+    "29": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "S(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)",
+          "edges": 0,
+          "last_op": "sum",
+          "component_sizes": [
+            1,
+            28
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "s": 2,
   "t": 2,
-  "max_n": 36,
+  "max_n": 37,
   "extremal_by_n": {
     "1": {
       "ex": 0,
@@ -536,6 +536,21 @@
           "component_sizes": [
             1,
             35
+          ]
+        }
+      ]
+    },
+    "37": {
+      "ex": 54,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1),P(1,1)))",
+          "edges": 54,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            36
           ]
         }
       ]
