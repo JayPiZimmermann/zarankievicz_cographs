@@ -1,0 +1,577 @@
+{
+  "s": 2,
+  "t": 6,
+  "max_n": 34,
+  "extremal_by_n": {
+    "1": {
+      "ex": 0,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "1",
+          "edges": 0,
+          "last_op": "vertex",
+          "component_sizes": []
+        }
+      ]
+    },
+    "2": {
+      "ex": 1,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,1)",
+          "edges": 1,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    "3": {
+      "ex": 3,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,1,1)",
+          "edges": 3,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "4": {
+      "ex": 6,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,1,1,1)",
+          "edges": 6,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            3
+          ]
+        }
+      ]
+    },
+    "5": {
+      "ex": 10,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,1,1,1,1)",
+          "edges": 10,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            4
+          ]
+        }
+      ]
+    },
+    "6": {
+      "ex": 15,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,1,1,1,1,1)",
+          "edges": 15,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            5
+          ]
+        }
+      ]
+    },
+    "7": {
+      "ex": 21,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,1,1,1,1,1,1)",
+          "edges": 21,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            6
+          ]
+        }
+      ]
+    },
+    "8": {
+      "ex": 23,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(1,P(1,1)),S(1,P(1,1,1)))",
+          "edges": 23,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            7
+          ]
+        }
+      ]
+    },
+    "9": {
+      "ex": 28,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))",
+          "edges": 28,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            8
+          ]
+        }
+      ]
+    },
+    "10": {
+      "ex": 29,
+      "count": 2,
+      "structures": [
+        {
+          "structure": "P(1,S(1,P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 29,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            9
+          ]
+        },
+        {
+          "structure": "P(S(1,P(1,1),P(1,1)),S(1,P(1,1),P(1,1)))",
+          "edges": 29,
+          "last_op": "product",
+          "component_sizes": [
+            5,
+            5
+          ]
+        }
+      ]
+    },
+    "11": {
+      "ex": 31,
+      "count": 2,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1),P(1,1,1,1,1,1)))",
+          "edges": 31,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            10
+          ]
+        },
+        {
+          "structure": "P(1,S(P(1,1),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 31,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            10
+          ]
+        }
+      ]
+    },
+    "12": {
+      "ex": 36,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1),P(1,1,1,1,1,1)))",
+          "edges": 36,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            11
+          ]
+        }
+      ]
+    },
+    "13": {
+      "ex": 42,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1)))",
+          "edges": 42,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            12
+          ]
+        }
+      ]
+    },
+    "14": {
+      "ex": 44,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(S(1,P(1,1)),S(1,P(1,1,1)))))",
+          "edges": 44,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            13
+          ]
+        }
+      ]
+    },
+    "15": {
+      "ex": 49,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 49,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            14
+          ]
+        }
+      ]
+    },
+    "16": {
+      "ex": 51,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(S(1,P(1,1)),S(1,P(1,1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 51,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            15
+          ]
+        }
+      ]
+    },
+    "17": {
+      "ex": 56,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 56,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            16
+          ]
+        }
+      ]
+    },
+    "18": {
+      "ex": 57,
+      "count": 2,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1)))",
+          "edges": 57,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            17
+          ]
+        },
+        {
+          "structure": "P(1,S(1,P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 57,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            17
+          ]
+        }
+      ]
+    },
+    "19": {
+      "ex": 63,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1)))",
+          "edges": 63,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            18
+          ]
+        }
+      ]
+    },
+    "20": {
+      "ex": 65,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(S(1,P(1,1)),S(1,P(1,1,1)))))",
+          "edges": 65,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            19
+          ]
+        }
+      ]
+    },
+    "21": {
+      "ex": 70,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 70,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            20
+          ]
+        }
+      ]
+    },
+    "22": {
+      "ex": 72,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(S(1,P(1,1)),S(1,P(1,1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 72,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            21
+          ]
+        }
+      ]
+    },
+    "23": {
+      "ex": 77,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 77,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            22
+          ]
+        }
+      ]
+    },
+    "24": {
+      "ex": 79,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(S(1,P(1,1)),S(1,P(1,1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 79,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            23
+          ]
+        }
+      ]
+    },
+    "25": {
+      "ex": 84,
+      "count": 2,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1)))",
+          "edges": 84,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            24
+          ]
+        },
+        {
+          "structure": "P(1,S(P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 84,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            24
+          ]
+        }
+      ]
+    },
+    "26": {
+      "ex": 86,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(S(1,P(1,1)),S(1,P(1,1,1)))))",
+          "edges": 86,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            25
+          ]
+        }
+      ]
+    },
+    "27": {
+      "ex": 91,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 91,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            26
+          ]
+        }
+      ]
+    },
+    "28": {
+      "ex": 93,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(S(1,P(1,1)),S(1,P(1,1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 93,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            27
+          ]
+        }
+      ]
+    },
+    "29": {
+      "ex": 98,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 98,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            28
+          ]
+        }
+      ]
+    },
+    "30": {
+      "ex": 100,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(S(1,P(1,1)),S(1,P(1,1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 100,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            29
+          ]
+        }
+      ]
+    },
+    "31": {
+      "ex": 105,
+      "count": 2,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1)))",
+          "edges": 105,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            30
+          ]
+        },
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 105,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            30
+          ]
+        }
+      ]
+    },
+    "32": {
+      "ex": 107,
+      "count": 2,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(S(1,P(1,1)),S(1,P(1,1,1)))))",
+          "edges": 107,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            31
+          ]
+        },
+        {
+          "structure": "P(1,S(P(S(1,P(1,1)),S(1,P(1,1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 107,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            31
+          ]
+        }
+      ]
+    },
+    "33": {
+      "ex": 112,
+      "count": 2,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 112,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            32
+          ]
+        },
+        {
+          "structure": "P(1,S(P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 112,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            32
+          ]
+        }
+      ]
+    },
+    "34": {
+      "ex": 114,
+      "count": 1,
+      "structures": [
+        {
+          "structure": "P(1,S(P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(1,1,1,1,1,1),P(S(1,P(1,1)),S(1,P(1,1,1))),P(S(P(1,1),P(1,1)),S(P(1,1),P(1,1)))))",
+          "edges": 114,
+          "last_op": "product",
+          "component_sizes": [
+            1,
+            33
+          ]
+        }
+      ]
+    }
+  }
+}

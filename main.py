@@ -301,6 +301,12 @@ def cmd_fast(args):
     if args.export_dir:
         print(f"Export dir: {args.export_dir} (incremental)")
         print(f"Exporting K_{{s,t}} for s,t in [2..{args.s_max}] x [2..{args.t_max}]")
+    if args.profile_domination:
+        print("Profile domination: ENABLED (batch mode)")
+    if args.profile_domination_lattice:
+        print("Profile domination: ENABLED (lattice mode - pre-filter combinations)")
+    if args.depth_domination:
+        print("Depth domination: ENABLED")
     print()
 
     checkpoint_dir = Path(args.checkpoint_dir) if args.checkpoint_dir else None
@@ -319,6 +325,9 @@ def cmd_fast(args):
         export_dir=export_dir,
         s_max=args.s_max,
         t_max=args.t_max,
+        use_profile_domination=args.profile_domination,
+        use_profile_domination_lattice=args.profile_domination_lattice,
+        use_depth_domination=args.depth_domination,
         progress_callback=progress
     )
 
@@ -448,6 +457,9 @@ def main():
     fast_parser.add_argument("--export-dir", help="Export results to directory")
     fast_parser.add_argument("--s-max", type=int, default=7, help="Max s for exports")
     fast_parser.add_argument("--t-max", type=int, default=7, help="Max t for exports")
+    fast_parser.add_argument("--profile-domination", action="store_true", help="Enable profile domination pruning (batch mode)")
+    fast_parser.add_argument("--profile-domination-lattice", action="store_true", help="Enable lattice-based profile domination (pre-filter combinations)")
+    fast_parser.add_argument("--depth-domination", action="store_true", help="Enable depth domination pruning")
     fast_parser.add_argument("--check", action="store_true", help="Check conjecture after build")
 
     args = parser.parse_args()

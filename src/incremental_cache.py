@@ -242,7 +242,7 @@ class IncrementalRegistry:
         self.exports_dir.mkdir(parents=True, exist_ok=True)
 
         # Export for each (s,t) pair
-        for s in range(2, self.s_max + 1):
+        for s in range(1, self.s_max + 1):
             for t in range(s, self.t_max + 1):
                 self._export_biclique(s, t, up_to_n)
 

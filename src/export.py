@@ -315,7 +315,7 @@ def export_all(
     paths["table_csv"] = csv_path
 
     # JSON files for each (s,t) pair
-    for s in range(2, s_max + 1):
+    for s in range(1, s_max + 1):
         for t in range(s, t_max + 1):
             json_path = output_dir / f"extremal_K{s}{t}.json"
             export_extremal_for_biclique(registry, s, t, json_path)

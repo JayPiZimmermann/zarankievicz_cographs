@@ -18,6 +18,188 @@ from .profile_ops import (
 )
 
 
+def _profile_dominates(p1: np.ndarray, p2: np.ndarray) -> bool:
+    """Check if profile p1 dominates profile p2 (p1[i] >= p2[i] for all i)."""
+    return np.all(p1 >= p2)
+
+
+def _filter_antichain(candidates: list[tuple]) -> list[tuple]:
+    """
+    Filter candidates to keep only non-dominated (antichain).
+
+    Args:
+        candidates: List of (p1_hash, p2_hash, result_profile, result_edges, ...)
+
+    Returns:
+        List of non-dominated candidates
+    """
+    if not candidates:
+        return []
+
+    # Sort by edges descending for efficiency
+    candidates.sort(key=lambda x: x[3], reverse=True)
+
+    antichain = []
+    for candidate in candidates:
+        profile = candidate[2]
+        edges = candidate[3]
+
+        # Check if dominated by any in antichain
+        dominated = False
+        for ac in antichain:
+            ac_prof = ac[2]
+            ac_edges = ac[3]
+            # candidate is dominated if: candidate.profile >= ac.profile AND ac.edges >= candidate.edges
+            if _profile_dominates(profile, ac_prof) and ac_edges >= edges:
+                dominated = True
+                break
+
+        if not dominated:
+            # Remove any antichain members dominated by this candidate
+            # ac is dominated if: ac.profile >= candidate.profile AND candidate.edges >= ac.edges
+            antichain = [ac for ac in antichain
+                        if not (_profile_dominates(ac[2], profile) and edges >= ac[3])]
+            antichain.append(candidate)
+
+    return antichain
+
+
+def _compute_viable_combinations(
+    n1: int,
+    n2: int,
+    profiles1_data: list,
+    profiles2_data: list,
+    T: int | None
+) -> dict:
+    """
+    Pre-compute which profile combinations are non-dominated.
+
+    Args:
+        n1, n2: Vertex counts
+        profiles1_data: List of (hash, profile_bytes, max_edges, graphs_info)
+        profiles2_data: List of (hash, profile_bytes, max_edges, graphs_info)
+        T: K_{T,T} pruning threshold
+
+    Returns:
+        {
+            'sum': [(p1_hash, p2_hash, result_profile_bytes, result_edges, graphs1_info, graphs2_info), ...],
+            'product': [(p1_hash, p2_hash, result_profile_bytes, result_edges, graphs1_info, graphs2_info), ...]
+        }
+    """
+    sum_candidates = []
+    prod_candidates = []
+
+    # Generate all profile combinations
+    for hash1, pbytes1, max_edges1, graphs1_info in profiles1_data:
+        p1 = np.frombuffer(pbytes1, dtype=np.int32).copy()
+
+        for hash2, pbytes2, max_edges2, graphs2_info in profiles2_data:
+            p2 = np.frombuffer(pbytes2, dtype=np.int32).copy()
+
+            # Fast K_{T,T} checks at profile level
+            skip_sum = T is not None and sum_profile_check_ktt(p1, p2, T)
+            skip_product = T is not None and product_profile_check_ktt(p1, p2, T)
+
+            if not skip_sum:
+                # Sum operation
+                sum_prof = sum_profile_fast(p1, p2)
+                sum_edges = max_edges1 + max_edges2
+                sum_candidates.append((hash1, hash2, sum_prof, sum_edges, graphs1_info, graphs2_info))
+
+            if not skip_product:
+                # Product operation
+                prod_prof = product_profile_fast(p1, p2)
+                prod_edges = max_edges1 + max_edges2 + n1 * n2
+                prod_candidates.append((hash1, hash2, prod_prof, prod_edges, graphs1_info, graphs2_info))
+
+    # Filter to antichain (non-dominated)
+    sum_viable = _filter_antichain(sum_candidates)
+    prod_viable = _filter_antichain(prod_candidates)
+
+    return {'sum': sum_viable, 'product': prod_viable}
+
+
+def _process_partition_pair_lattice(
+    args: tuple
+) -> list[tuple]:
+    """
+    Worker function with lattice-based pre-filtering.
+
+    Only generates graphs for non-dominated profile combinations.
+
+    Args:
+        args: (n1, n2, profiles1_data, profiles2_data, T)
+
+    Returns:
+        List of results: (new_profile_bytes, edges, op, depth, c1_n, c1_hash, c1_idx, c2_n, c2_hash, c2_idx)
+    """
+    n1, n2, profiles1_data, profiles2_data, T = args
+
+    # Assert canonical ordering at partition level
+    assert n1 <= n2, f"Expected n1 <= n2, got n1={n1}, n2={n2}"
+
+    # Pre-compute viable (non-dominated) profile combinations
+    viable = _compute_viable_combinations(n1, n2, profiles1_data, profiles2_data, T)
+
+    results = []
+
+    # Process sum viable combinations
+    for hash1, hash2, result_prof, result_edges, graphs1_info, graphs2_info in viable['sum']:
+        # Enforce canonical ordering: when n1 == n2, only process hash1 <= hash2
+        if n1 == n2 and hash1 > hash2:
+            continue
+
+        # Generate graphs for this viable combination
+        for idx1, op1, depth1 in graphs1_info:
+            for idx2, op2, depth2 in graphs2_info:
+                # When profiles are identical, enforce idx1 <= idx2
+                if n1 == n2 and hash1 == hash2 and idx1 > idx2:
+                    continue
+
+                # Calculate depth for sum operation
+                contrib1 = depth1 if op1 == "s" or op1 == "v" else depth1 + 1
+                contrib2 = depth2 if op2 == "s" or op2 == "v" else depth2 + 1
+                sum_depth = max(contrib1, contrib2)
+
+                results.append((
+                    result_prof.tobytes(),
+                    result_edges,
+                    "s",
+                    sum_depth,
+                    n1, hash1, idx1,
+                    n2, hash2, idx2
+                ))
+
+    # Process product viable combinations
+    for hash1, hash2, result_prof, result_edges, graphs1_info, graphs2_info in viable['product']:
+        # Enforce canonical ordering: when n1 == n2, only process hash1 <= hash2
+        if n1 == n2 and hash1 > hash2:
+            continue
+
+        # Generate graphs for this viable combination
+        for idx1, op1, depth1 in graphs1_info:
+            for idx2, op2, depth2 in graphs2_info:
+                # When profiles are identical, enforce idx1 <= idx2
+                if n1 == n2 and hash1 == hash2 and idx1 > idx2:
+                    continue
+
+                # Calculate depth for product operation
+                contrib1 = depth1 if op1 == "p" or op1 == "v" else depth1 + 1
+                contrib2 = depth2 if op2 == "p" or op2 == "v" else depth2 + 1
+                prod_depth = max(contrib1, contrib2)
+
+                results.append((
+                    result_prof.tobytes(),
+                    result_edges,
+                    "p",
+                    prod_depth,
+                    n1, hash1, idx1,
+                    n2, hash2, idx2
+                ))
+
+    return results
+
+
 def _process_partition_pair(
     args: tuple
 ) -> list[tuple]:
@@ -26,20 +208,27 @@ def _process_partition_pair(
 
     Args:
         args: (n1, n2, profiles1_data, profiles2_data, T)
-            profiles_data: list of (hash, profile_bytes, graphs_data)
-            graphs_data: list of (edges, idx) for each graph
+            profiles_data: list of (hash, profile_bytes, max_edges, graphs_info)
+            graphs_info: list of (idx, op, depth) for each graph with this profile
 
     Returns:
-        List of results: (new_profile_bytes, edges, op, c1_n, c1_hash, c1_idx, c2_n, c2_hash, c2_idx)
+        List of results: (new_profile_bytes, edges, op, depth, c1_n, c1_hash, c1_idx, c2_n, c2_hash, c2_idx)
     """
     n1, n2, profiles1_data, profiles2_data, T = args
 
+    # Assert canonical ordering at partition level
+    assert n1 <= n2, f"Expected n1 <= n2, got n1={n1}, n2={n2}"
+
     results = []
 
-    for hash1, pbytes1, graphs1 in profiles1_data:
+    for hash1, pbytes1, max_edges1, graphs1_info in profiles1_data:
         p1 = np.frombuffer(pbytes1, dtype=np.int32).copy()
 
-        for hash2, pbytes2, graphs2 in profiles2_data:
+        for hash2, pbytes2, max_edges2, graphs2_info in profiles2_data:
+            # Enforce canonical ordering: when n1 == n2, only process hash1 <= hash2
+            if n1 == n2 and hash1 > hash2:
+                continue
+
             p2 = np.frombuffer(pbytes2, dtype=np.int32).copy()
 
             # Fast K_{T,T} checks at profile level
@@ -53,38 +242,48 @@ def _process_partition_pair(
             sum_profile = None if skip_sum else sum_profile_fast(p1, p2)
             prod_profile = None if skip_product else product_profile_fast(p1, p2)
 
-            # Compute edge counts
-            e1_base = graphs1[0][0] if graphs1 else 0  # All graphs in profile have same edge contribution
-            e2_base = graphs2[0][0] if graphs2 else 0
+            # Calculate edge counts arithmetically from children's edge counts
+            # edges(S(a,b)) = edges(a) + edges(b)
+            # edges(P(a,b)) = edges(a) + edges(b) + n(a) * n(b)
+            sum_edges = max_edges1 + max_edges2
+            prod_edges = max_edges1 + max_edges2 + n1 * n2
 
-            sum_edges = e1_base + e2_base
-            prod_edges = e1_base + e2_base + n1 * n2
-
-            # For each graph pair (only need one representative per profile for the profile)
-            # But we track all graph indices for reconstruction
-            for edges1, idx1 in graphs1:
-                for edges2, idx2 in graphs2:
-                    # Symmetry: skip if n1 == n2 and hash1 > hash2
-                    if n1 == n2 and hash1 > hash2:
-                        continue
-                    # Also skip if same profile and idx1 > idx2
+            # For each graph pair
+            # Track all graph indices for reconstruction
+            for idx1, op1, depth1 in graphs1_info:
+                for idx2, op2, depth2 in graphs2_info:
+                    # When profiles are identical, enforce idx1 <= idx2
                     if n1 == n2 and hash1 == hash2 and idx1 > idx2:
                         continue
 
+                    # Calculate depth for sum and product operations
+                    # depth = max number of operation switches from root to leaf
                     if not skip_sum:
+                        # For S(a, b): if child has same op, no switch; if different, +1 switch
+                        contrib1 = depth1 if op1 == "s" or op1 == "v" else depth1 + 1
+                        contrib2 = depth2 if op2 == "s" or op2 == "v" else depth2 + 1
+                        sum_depth = max(contrib1, contrib2)
+
                         results.append((
                             sum_profile.tobytes(),
                             sum_edges,
                             "s",
+                            sum_depth,
                             n1, hash1, idx1,
                             n2, hash2, idx2
                         ))
 
                     if not skip_product:
+                        # For P(a, b): if child has same op, no switch; if different, +1 switch
+                        contrib1 = depth1 if op1 == "p" or op1 == "v" else depth1 + 1
+                        contrib2 = depth2 if op2 == "p" or op2 == "v" else depth2 + 1
+                        prod_depth = max(contrib1, contrib2)
+
                         results.append((
                             prod_profile.tobytes(),
                             prod_edges,
                             "p",
+                            prod_depth,
                             n1, hash1, idx1,
                             n2, hash2, idx2
                         ))
@@ -101,6 +300,9 @@ def build_fast(
     export_dir: Path | None = None,
     s_max: int = 7,
     t_max: int = 7,
+    use_profile_domination: bool = False,
+    use_profile_domination_lattice: bool = False,
+    use_depth_domination: bool = False,
     progress_callback: Callable[[int, int, int, int, int, int, float], None] | None = None
 ) -> FastRegistry:
     """
@@ -115,6 +317,9 @@ def build_fast(
         export_dir: Directory for incremental exports (None = no exports)
         s_max: Maximum s value for exports
         t_max: Maximum t value for exports
+        use_profile_domination: Enable profile domination pruning (batch mode)
+        use_profile_domination_lattice: Enable lattice-based profile domination (pre-filter)
+        use_depth_domination: Enable depth domination pruning
         progress_callback: callback(n, N, added, profiles, total, cumulative, time_sec)
 
     Returns:
@@ -123,7 +328,14 @@ def build_fast(
     if num_workers is None:
         num_workers = cpu_count()
 
-    registry = FastRegistry()
+    # Lattice mode implies registry-level domination
+    # (lattice pre-filters combinations, but registry still needs to maintain antichain)
+    effective_profile_domination = use_profile_domination or use_profile_domination_lattice
+
+    registry = FastRegistry(
+        use_profile_domination=effective_profile_domination,
+        use_depth_domination=use_depth_domination
+    )
     start_n = 2
 
     # Try to load checkpoint
@@ -150,42 +362,40 @@ def build_fast(
             # Get profile data for n1
             profiles1_data = []
             for h, p in registry.get_all_profiles(n1):
+                max_edges = registry._max_edges[n1][h]
                 graphs = registry.get_graphs(n1, h)
-                graphs_data = [(g.edges, idx) for idx, g in enumerate(graphs)]
-                profiles1_data.append((h, p.tobytes(), graphs_data))
+                graphs_info = [(idx, g.op, g.depth) for idx, g in enumerate(graphs)]
+                profiles1_data.append((h, p.tobytes(), max_edges, graphs_info))
 
             # Get profile data for n2
             profiles2_data = []
             for h, p in registry.get_all_profiles(n2):
+                max_edges = registry._max_edges[n2][h]
                 graphs = registry.get_graphs(n2, h)
-                graphs_data = [(g.edges, idx) for idx, g in enumerate(graphs)]
-                profiles2_data.append((h, p.tobytes(), graphs_data))
+                graphs_info = [(idx, g.op, g.depth) for idx, g in enumerate(graphs)]
+                profiles2_data.append((h, p.tobytes(), max_edges, graphs_info))
 
             if profiles1_data and profiles2_data:
                 work_items.append((n1, n2, profiles1_data, profiles2_data, T))
 
         # Process in parallel
+        # Use lattice worker if lattice mode is enabled
+        worker_func = _process_partition_pair_lattice if use_profile_domination_lattice else _process_partition_pair
+
         if num_workers > 1 and len(work_items) > 1:
             with Pool(processes=min(num_workers, len(work_items))) as pool:
-                all_results = pool.map(_process_partition_pair, work_items)
+                all_results = pool.map(worker_func, work_items)
         else:
-            all_results = [_process_partition_pair(item) for item in work_items]
+            all_results = [worker_func(item) for item in work_items]
 
         # Merge results into registry
+        # Collect all candidates for batch processing
+        all_candidates = []
         for results in all_results:
-            for result in results:
-                (profile_bytes, edges, op,
-                 c1_n, c1_hash, c1_idx,
-                 c2_n, c2_hash, c2_idx) = result
+            all_candidates.extend(results)
 
-                profile = np.frombuffer(profile_bytes, dtype=np.int32).copy()
-
-                if registry.add(
-                    target_n, profile, edges, op,
-                    c1_n, c1_hash, c1_idx,
-                    c2_n, c2_hash, c2_idx
-                ):
-                    graphs_added += 1
+        # Use batch addition for better performance with profile domination
+        graphs_added = registry.add_batch(target_n, all_candidates)
 
         elapsed = time.time() - start_time
         cumulative += registry.graph_count(target_n)
@@ -201,7 +411,7 @@ def build_fast(
 
         # Incremental export after each n
         if export_dir:
-            for s in range(2, min(s_max, T or s_max) + 1):
+            for s in range(1, min(s_max, T or s_max) + 1):
                 for t in range(s, min(t_max, T or t_max) + 1):
                     export_path = export_dir / f"extremal_K{s}{t}.json"
                     export_extremal_analysis(registry, s, t, export_path)
