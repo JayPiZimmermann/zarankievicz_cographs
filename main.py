@@ -390,8 +390,11 @@ def cmd_partition(args):
     if args.export_dir:
         print(f"Export dir: {args.export_dir} (incremental)")
         effective_s = S if S is not None else args.s_max
-        effective_t = S_max if S_max is not None else args.t_max
-        print(f"Exporting K_{{s,t}} for s in [1..{effective_s}], t in [s..{effective_t}]")
+        if S is not None and S_max is None:
+            print(f"Exporting K_{{s,t}} for s in [1..{effective_s}], t in [s..n] (N-independent)")
+        else:
+            effective_t = S_max if S_max is not None else args.t_max
+            print(f"Exporting K_{{s,t}} for s in [1..{effective_s}], t in [s..{effective_t}]")
     if args.profile_domination:
         print("Profile domination: ENABLED (batch mode)")
     if args.profile_domination_lattice:
@@ -565,8 +568,8 @@ def main():
     partition_parser.add_argument("--start-n", type=int, default=2, help="Starting vertex count")
     partition_parser.add_argument("--end-n", type=int, required=True, help="Ending vertex count")
     partition_parser.add_argument("--T", type=int, help="Prune K_{T,T} containing graphs (legacy)")
-    partition_parser.add_argument("--S", type=int, help="Truncate profiles to index S (for finding K_{s,t} with s,t <= S)")
-    partition_parser.add_argument("--S-max", type=int, help="Prune K_{S,S_max} instead of K_{T,T}")
+    partition_parser.add_argument("--S", type=int, help="Truncate profiles to index S and export K_{i,j} for i<=S, j<=n")
+    partition_parser.add_argument("--S-max", type=int, help="Prune K_{S,S_max} and limit exports to j<=S_max")
     partition_parser.add_argument("--workers", "-w", type=int, help="Number of workers (default: cpu_count)")
     partition_parser.add_argument("--checkpoint-dir", help="Directory for checkpoints")
     partition_parser.add_argument("--checkpoint-interval", type=int, default=5, help="Checkpoint every N values")

@@ -493,14 +493,22 @@ def build_range(
             from .fast_builder import export_extremal_analysis
             # Determine export range based on S and S_max if provided
             effective_s_max = S if S is not None else s_max
-            effective_t_max = S_max if S_max is not None else t_max
 
-            # Export K_{i,j} where i <= S and j <= min(max_n, S_max)
-            for s in range(1, effective_s_max + 1):
-                # For each s, export up to effective_t_max (or target_n if smaller)
-                for t in range(s, min(effective_t_max, target_n) + 1):
-                    export_path = export_dir / f"extremal_K{s}{t}.json"
-                    export_extremal_analysis(registry, s, t, export_path)
+            # When S is set but S_max is not: export K_{i,j} for i <= S and j <= current n
+            # This makes the cache N-independent (no max limit on j)
+            if S is not None and S_max is None:
+                # Export up to current n, no upper limit
+                for s in range(1, effective_s_max + 1):
+                    for t in range(s, target_n + 1):
+                        export_path = export_dir / f"extremal_K{s}{t}.json"
+                        export_extremal_analysis(registry, s, t, export_path)
+            else:
+                # S_max is set OR neither S nor S_max is set: use appropriate limits
+                effective_t_max = S_max if S_max is not None else t_max
+                for s in range(1, effective_s_max + 1):
+                    for t in range(s, min(effective_t_max, target_n) + 1):
+                        export_path = export_dir / f"extremal_K{s}{t}.json"
+                        export_extremal_analysis(registry, s, t, export_path)
 
         # Checkpoint
         if checkpoint_dir and target_n % checkpoint_interval == 0:
