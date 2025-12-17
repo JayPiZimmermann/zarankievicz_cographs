@@ -463,6 +463,7 @@ def export_extremal_analysis(
             structures.append({
                 "structure": struct_str,
                 "edges": edges,
+                "depth": graph.depth,
                 "last_op": "product" if graph.op == "p" else ("sum" if graph.op == "s" else "vertex"),
                 "component_sizes": [graph.child1_n, graph.child2_n] if graph.op != "v" else []
             })
