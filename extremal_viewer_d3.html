@@ -487,9 +487,18 @@
                     .attr("class", "graph-label")
                     .html(`${graph.label}${graph.is_exceptional ? '<span class="exceptional-badge">EXCEPTION</span>' : ''}`);
 
+                const metaText = [
+                    `V: ${graph.n}`,
+                    `E: ${graph.edges_count}`,
+                    `D: ${graph.depth}`,
+                    graph.last_op ? `Op: ${graph.last_op}` : null,
+                    graph.component_sizes && graph.component_sizes.length > 0 ? `Comp: [${graph.component_sizes.join(',')}]` : null,
+                    `#${graph.struct_index + 1}/${graph.total_structures}`
+                ].filter(x => x !== null).join(' | ');
+
                 item.append("div")
                     .attr("class", "graph-meta")
-                    .text(`V: ${graph.n} | E: ${graph.edges_count} | Struct ${graph.struct_index + 1}/${graph.total_structures}`);
+                    .text(metaText);
             });
 
             // Auto-load first graph
@@ -762,6 +771,9 @@
                 ["K_{s,t}", `K_{${graph.s},${graph.t}}`],
                 ["Vertices", graph.n],
                 ["Edges", graph.edges_count],
+                ["Cotree Depth", graph.depth !== undefined ? graph.depth : "N/A"],
+                ["Last Operation", graph.last_op || "N/A"],
+                ["Component Sizes", graph.component_sizes && graph.component_sizes.length > 0 ? `[${graph.component_sizes.join(', ')}]` : "N/A"],
                 ["Structure #", `${graph.struct_index + 1} / ${graph.total_structures}`],
                 ["Exceptional", graph.is_exceptional ? "YES" : "No"]
             ].forEach(([label, value]) => {
