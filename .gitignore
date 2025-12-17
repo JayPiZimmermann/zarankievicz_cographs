@@ -8,9 +8,10 @@ venv/
 dist/
 build/
 
-# Cache
+# Cache and checkpoints
 cache/
 exports_withDuplicates/
+checkpoints*/
 
 # IDE
 .idea/
