@@ -410,8 +410,8 @@ def cmd_partition(args):
     export_dir = Path(args.export_dir) if args.export_dir else None
 
     def progress(n, end_n, added, profiles, total_n_graphs, cumulative, elapsed):
-        print(f"  n={n:3d}: +{added:6d} graphs, {profiles:5d} profiles, "
-              f"{total_n_graphs:6d} for n, {cumulative:8d} total, {elapsed:.1f}s")
+        print(f"  n={n:3d}: +{added:6d} graphs, {profiles:5d} profiles at n, "
+              f"{total_n_graphs:6d} graphs at n, {cumulative:8d} total, {elapsed:.1f}s")
 
     registry = build_range(
         start_n=start_n,

@@ -31,15 +31,16 @@ def sum_profile_fast(p1: np.ndarray, p2: np.ndarray, S: int | None = None) -> np
     For sum G + H: profile_sum[i] = max(p1[i], p2[i])
 
     Args:
-        p1: Profile array of first graph (length n1+1)
-        p2: Profile array of second graph (length n2+1)
+        p1: Profile array of first graph (may be truncated)
+        p2: Profile array of second graph (may be truncated)
         S: Optional truncation index (only compute profile up to S)
 
     Returns:
         Profile array of sum (length n1+n2+1 or S+1 if truncated)
     """
-    n1 = len(p1) - 1
-    n2 = len(p2) - 1
+    # Extract n from profile[0], not from length (profiles may be truncated)
+    n1 = int(p1[0])
+    n2 = int(p2[0])
     n = n1 + n2
 
     # Determine output length
@@ -65,15 +66,16 @@ def product_profile_fast(p1: np.ndarray, p2: np.ndarray, S: int | None = None) -
     This is a max-convolution.
 
     Args:
-        p1: Profile array of first graph
-        p2: Profile array of second graph
+        p1: Profile array of first graph (may be truncated)
+        p2: Profile array of second graph (may be truncated)
         S: Optional truncation index (only compute profile up to S)
 
     Returns:
         Profile array of product (length n1+n2+1 or S+1 if truncated)
     """
-    n1 = len(p1) - 1
-    n2 = len(p2) - 1
+    # Extract n from profile[0], not from length (profiles may be truncated)
+    n1 = int(p1[0])
+    n2 = int(p2[0])
     n = n1 + n2
 
     # Determine output length
