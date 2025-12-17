@@ -371,13 +371,27 @@ def cmd_partition(args):
     start_n = args.start_n
     end_n = args.end_n
     T = args.T
+    S = args.S
+    S_max = args.S_max
     workers = args.workers or cpu_count()
 
-    print(f"Partition-based build: n=[{start_n}..{end_n}], T={T}, workers={workers}")
+    print(f"Partition-based build: n=[{start_n}..{end_n}], workers={workers}")
+
+    # Display pruning configuration
+    if S is not None and S_max is not None:
+        print(f"Pruning: K_{{{S},{S_max}}} (--S={S}, --S-max={S_max})")
+        print(f"Profile truncation: storing only up to index {S}")
+    elif T is not None:
+        print(f"Pruning: K_{{{T},{T}}} (legacy --T={T})")
+    else:
+        print(f"Pruning: disabled")
+
     print(f"Checkpoint dir: {args.checkpoint_dir or 'disabled'}")
     if args.export_dir:
         print(f"Export dir: {args.export_dir} (incremental)")
-        print(f"Exporting K_{{s,t}} for s,t in [1..{args.s_max}] x [1..{args.t_max}]")
+        effective_s = S if S is not None else args.s_max
+        effective_t = S_max if S_max is not None else args.t_max
+        print(f"Exporting K_{{s,t}} for s in [1..{effective_s}], t in [s..{effective_t}]")
     if args.profile_domination:
         print("Profile domination: ENABLED (batch mode)")
     if args.profile_domination_lattice:
@@ -410,7 +424,9 @@ def cmd_partition(args):
         use_profile_domination=args.profile_domination,
         use_profile_domination_lattice=args.profile_domination_lattice,
         use_depth_domination=args.depth_domination,
-        progress_callback=progress
+        progress_callback=progress,
+        S=S,
+        S_max=S_max
     )
 
     print()
@@ -548,13 +564,15 @@ def main():
     partition_parser = subparsers.add_parser("partition", help="Partition-based build (N-independent)")
     partition_parser.add_argument("--start-n", type=int, default=2, help="Starting vertex count")
     partition_parser.add_argument("--end-n", type=int, required=True, help="Ending vertex count")
-    partition_parser.add_argument("--T", type=int, help="Prune K_{T,T} containing graphs")
+    partition_parser.add_argument("--T", type=int, help="Prune K_{T,T} containing graphs (legacy)")
+    partition_parser.add_argument("--S", type=int, help="Truncate profiles to index S (for finding K_{s,t} with s,t <= S)")
+    partition_parser.add_argument("--S-max", type=int, help="Prune K_{S,S_max} instead of K_{T,T}")
     partition_parser.add_argument("--workers", "-w", type=int, help="Number of workers (default: cpu_count)")
     partition_parser.add_argument("--checkpoint-dir", help="Directory for checkpoints")
     partition_parser.add_argument("--checkpoint-interval", type=int, default=5, help="Checkpoint every N values")
     partition_parser.add_argument("--export-dir", help="Export results to directory")
-    partition_parser.add_argument("--s-max", type=int, default=7, help="Max s for exports")
-    partition_parser.add_argument("--t-max", type=int, default=7, help="Max t for exports")
+    partition_parser.add_argument("--s-max", type=int, default=7, help="Max s for exports (overridden by --S)")
+    partition_parser.add_argument("--t-max", type=int, default=7, help="Max t for exports (overridden by --S-max)")
     partition_parser.add_argument("--profile-domination", action="store_true", help="Enable profile domination pruning (batch mode)")
     partition_parser.add_argument("--profile-domination-lattice", action="store_true", help="Enable lattice-based profile domination (pre-filter combinations)")
     partition_parser.add_argument("--depth-domination", action="store_true", help="Enable depth domination pruning")

@@ -6,7 +6,25 @@ from typing import Tuple
 from functools import lru_cache
 
 
-def sum_profile_fast(p1: np.ndarray, p2: np.ndarray) -> np.ndarray:
+def truncate_profile_array(profile: np.ndarray, S: int) -> np.ndarray:
+    """
+    Truncate profile to first S+1 entries.
+
+    For tracking K_{s,t} with s,t <= S, we only need profile[0:S+1].
+
+    Args:
+        profile: Full profile array
+        S: Maximum index to keep
+
+    Returns:
+        Truncated profile of length min(S+1, len(profile))
+    """
+    if S >= len(profile) - 1:
+        return profile
+    return profile[:S + 1]
+
+
+def sum_profile_fast(p1: np.ndarray, p2: np.ndarray, S: int | None = None) -> np.ndarray:
     """
     Compute profile of disjoint union (sum) of two graphs.
 
@@ -15,20 +33,23 @@ def sum_profile_fast(p1: np.ndarray, p2: np.ndarray) -> np.ndarray:
     Args:
         p1: Profile array of first graph (length n1+1)
         p2: Profile array of second graph (length n2+1)
+        S: Optional truncation index (only compute profile up to S)
 
     Returns:
-        Profile array of sum (length n1+n2+1)
+        Profile array of sum (length n1+n2+1 or S+1 if truncated)
     """
     n1 = len(p1) - 1
     n2 = len(p2) - 1
     n = n1 + n2
 
-    result = np.zeros(n + 1, dtype=np.int32)
+    # Determine output length
+    out_len = min(S + 1, n + 1) if S is not None else n + 1
+
+    result = np.zeros(out_len, dtype=np.int32)
     result[0] = n  # K_{0,n} always exists
 
     # For i > 0, take max
-    max_len = max(len(p1), len(p2))
-    for i in range(1, n + 1):
+    for i in range(1, out_len):
         v1 = p1[i] if i < len(p1) else 0
         v2 = p2[i] if i < len(p2) else 0
         result[i] = max(v1, v2)
@@ -36,7 +57,7 @@ def sum_profile_fast(p1: np.ndarray, p2: np.ndarray) -> np.ndarray:
     return result
 
 
-def product_profile_fast(p1: np.ndarray, p2: np.ndarray) -> np.ndarray:
+def product_profile_fast(p1: np.ndarray, p2: np.ndarray, S: int | None = None) -> np.ndarray:
     """
     Compute profile of complete join (product) of two graphs.
 
@@ -46,19 +67,23 @@ def product_profile_fast(p1: np.ndarray, p2: np.ndarray) -> np.ndarray:
     Args:
         p1: Profile array of first graph
         p2: Profile array of second graph
+        S: Optional truncation index (only compute profile up to S)
 
     Returns:
-        Profile array of product
+        Profile array of product (length n1+n2+1 or S+1 if truncated)
     """
     n1 = len(p1) - 1
     n2 = len(p2) - 1
     n = n1 + n2
 
-    result = np.zeros(n + 1, dtype=np.int32)
+    # Determine output length
+    out_len = min(S + 1, n + 1) if S is not None else n + 1
+
+    result = np.zeros(out_len, dtype=np.int32)
     result[0] = n
 
     # Max-convolution: result[s] = max_{a+c=s} (p1[a] + p2[c])
-    for s in range(n + 1):
+    for s in range(out_len):
         a_min = max(0, s - n2)
         a_max = min(s, n1)
 
@@ -103,6 +128,62 @@ def sum_profile_check_ktt(p1: np.ndarray, p2: np.ndarray, T: int) -> bool:
     v1 = p1[T] if T < len(p1) else 0
     v2 = p2[T] if T < len(p2) else 0
     return max(v1, v2) >= T
+
+
+def product_profile_check_kst(p1: np.ndarray, p2: np.ndarray, s: int, t: int) -> bool:
+    """
+    Fast check if product would contain K_{s,t}.
+
+    Only computes profile[s] and profile[t], not full profile.
+
+    Returns:
+        True if product would contain K_{s,t}
+    """
+    n1 = len(p1) - 1
+    n2 = len(p2) - 1
+
+    # Check profile[s] >= t
+    if s <= n1 + n2:
+        a_min = max(0, s - n2)
+        a_max = min(s, n1)
+        for a in range(a_min, a_max + 1):
+            c = s - a
+            if int(p1[a]) + int(p2[c]) >= t:
+                return True
+
+    # Check profile[t] >= s (for symmetry)
+    if t <= n1 + n2 and s != t:
+        a_min = max(0, t - n2)
+        a_max = min(t, n1)
+        for a in range(a_min, a_max + 1):
+            c = t - a
+            if int(p1[a]) + int(p2[c]) >= s:
+                return True
+
+    return False
+
+
+def sum_profile_check_kst(p1: np.ndarray, p2: np.ndarray, s: int, t: int) -> bool:
+    """
+    Fast check if sum would contain K_{s,t}.
+
+    Returns:
+        True if sum would contain K_{s,t}
+    """
+    # Check profile[s] >= t
+    v1_s = p1[s] if s < len(p1) else 0
+    v2_s = p2[s] if s < len(p2) else 0
+    if max(v1_s, v2_s) >= t:
+        return True
+
+    # Check profile[t] >= s (for symmetry)
+    if s != t:
+        v1_t = p1[t] if t < len(p1) else 0
+        v2_t = p2[t] if t < len(p2) else 0
+        if max(v1_t, v2_t) >= s:
+            return True
+
+    return False
 
 
 def profile_avoids_kst(profile: np.ndarray, s: int, t: int) -> bool:

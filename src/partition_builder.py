@@ -14,7 +14,8 @@ import numpy as np
 from .compact_storage import FastRegistry, CompactGraph
 from .profile_ops import (
     sum_profile_fast, product_profile_fast,
-    sum_profile_check_ktt, product_profile_check_ktt
+    sum_profile_check_ktt, product_profile_check_ktt,
+    sum_profile_check_kst, product_profile_check_kst
 )
 
 
@@ -69,7 +70,9 @@ def _compute_viable_combinations_lattice(
     n2: int,
     profiles1_data: list,
     profiles2_data: list,
-    T: int | None
+    T: int | None,
+    S: int | None = None,
+    S_max: int | None = None
 ) -> dict:
     """
     Pre-compute which profile combinations are non-dominated (lattice mode).
@@ -80,7 +83,9 @@ def _compute_viable_combinations_lattice(
         n1, n2: Vertex counts
         profiles1_data: List of (hash, profile_bytes, max_edges, graphs_info)
         profiles2_data: List of (hash, profile_bytes, max_edges, graphs_info)
-        T: K_{T,T} pruning threshold
+        T: K_{T,T} pruning threshold (legacy, kept for backward compatibility)
+        S: Profile truncation index (only store profile up to index S)
+        S_max: Prune K_{S,S_max} instead of K_{T,T}
 
     Returns:
         {
@@ -90,6 +95,10 @@ def _compute_viable_combinations_lattice(
     """
     sum_candidates = []
     prod_candidates = []
+
+    # Determine pruning parameters
+    prune_s = S if S_max is not None else T
+    prune_t = S_max if S_max is not None else T
 
     # Generate all profile combinations
     for hash1, pbytes1, max_edges1, graphs1_info in profiles1_data:
@@ -102,16 +111,19 @@ def _compute_viable_combinations_lattice(
 
             p2 = np.frombuffer(pbytes2, dtype=np.int32).copy()
 
-            # Fast K_{T,T} checks at profile level
-            skip_sum = T is not None and sum_profile_check_ktt(p1, p2, T)
-            skip_product = T is not None and product_profile_check_ktt(p1, p2, T)
+            # Fast K_{s,t} checks at profile level
+            skip_sum = False
+            skip_product = False
+            if prune_s is not None and prune_t is not None:
+                skip_sum = sum_profile_check_kst(p1, p2, prune_s, prune_t)
+                skip_product = product_profile_check_kst(p1, p2, prune_s, prune_t)
 
             if skip_sum and skip_product:
                 continue
 
-            # Compute profiles once per profile pair
-            sum_profile = None if skip_sum else sum_profile_fast(p1, p2)
-            prod_profile = None if skip_product else product_profile_fast(p1, p2)
+            # Compute profiles once per profile pair (with optional truncation)
+            sum_profile = None if skip_sum else sum_profile_fast(p1, p2, S)
+            prod_profile = None if skip_product else product_profile_fast(p1, p2, S)
 
             # Calculate edge counts
             sum_edges = max_edges1 + max_edges2
@@ -152,15 +164,17 @@ def _process_partition_pair(
     Worker function: process all profile pairs for (n1, n2).
 
     Args:
-        args: (n1, n2, profiles1_data, profiles2_data, T, use_lattice)
+        args: (n1, n2, profiles1_data, profiles2_data, T, use_lattice, S, S_max)
             profiles_data: list of (hash, profile_bytes, max_edges, graphs_info)
             graphs_info: list of (idx, op, depth) for each graph with this profile
             use_lattice: if True, use lattice-based pre-filtering
+            S: Optional profile truncation index
+            S_max: Optional K_{S,S_max} pruning threshold
 
     Returns:
         List of results: (new_profile_bytes, edges, op, depth, c1_n, c1_hash, c1_idx, c2_n, c2_hash, c2_idx)
     """
-    n1, n2, profiles1_data, profiles2_data, T, use_lattice = args
+    n1, n2, profiles1_data, profiles2_data, T, use_lattice, S, S_max = args
 
     # Assert canonical ordering at partition level
     assert n1 <= n2, f"Expected n1 <= n2, got n1={n1}, n2={n2}"
@@ -169,7 +183,7 @@ def _process_partition_pair(
 
     if use_lattice:
         # Lattice mode: pre-filter profile combinations
-        viable = _compute_viable_combinations_lattice(n1, n2, profiles1_data, profiles2_data, T)
+        viable = _compute_viable_combinations_lattice(n1, n2, profiles1_data, profiles2_data, T, S, S_max)
 
         # Process sum operations
         for hash1, hash2, sum_profile, sum_edges, graphs1_info, graphs2_info in viable['sum']:
@@ -215,6 +229,10 @@ def _process_partition_pair(
 
     else:
         # Standard mode: process all profile pairs
+        # Determine pruning parameters
+        prune_s = S if S_max is not None else T
+        prune_t = S_max if S_max is not None else T
+
         for hash1, pbytes1, max_edges1, graphs1_info in profiles1_data:
             p1 = np.frombuffer(pbytes1, dtype=np.int32).copy()
 
@@ -225,16 +243,19 @@ def _process_partition_pair(
 
                 p2 = np.frombuffer(pbytes2, dtype=np.int32).copy()
 
-                # Fast K_{T,T} checks at profile level
-                skip_sum = T is not None and sum_profile_check_ktt(p1, p2, T)
-                skip_product = T is not None and product_profile_check_ktt(p1, p2, T)
+                # Fast K_{s,t} checks at profile level
+                skip_sum = False
+                skip_product = False
+                if prune_s is not None and prune_t is not None:
+                    skip_sum = sum_profile_check_kst(p1, p2, prune_s, prune_t)
+                    skip_product = product_profile_check_kst(p1, p2, prune_s, prune_t)
 
                 if skip_sum and skip_product:
                     continue
 
-                # Compute profiles once per profile pair
-                sum_profile = None if skip_sum else sum_profile_fast(p1, p2)
-                prod_profile = None if skip_product else product_profile_fast(p1, p2)
+                # Compute profiles once per profile pair (with optional truncation)
+                sum_profile = None if skip_sum else sum_profile_fast(p1, p2, S)
+                prod_profile = None if skip_product else product_profile_fast(p1, p2, S)
 
                 # Calculate edge counts arithmetically from children's edge counts
                 sum_edges = max_edges1 + max_edges2
@@ -285,7 +306,9 @@ def build_partition(
     T: int | None = None,
     num_workers: int | None = None,
     use_profile_domination_lattice: bool = False,
-    progress_callback: Callable[[int, int, int, int, float], None] | None = None
+    progress_callback: Callable[[int, int, int, int, float], None] | None = None,
+    S: int | None = None,
+    S_max: int | None = None
 ) -> int:
     """
     Build all graphs of size target_n from partitions n1 + n2 = target_n.
@@ -296,10 +319,12 @@ def build_partition(
     Args:
         target_n: The vertex count to compute
         registry: FastRegistry with data for n < target_n already computed
-        T: Pruning threshold for K_{T,T}
+        T: Pruning threshold for K_{T,T} (legacy, prefer S/S_max)
         num_workers: Number of parallel workers (default: cpu_count)
         use_profile_domination_lattice: Enable lattice-based profile domination
         progress_callback: callback(n, added, profiles, total, time_sec)
+        S: Profile truncation index (only store profile up to index S)
+        S_max: Prune K_{S,S_max} instead of K_{T,T}
 
     Returns:
         Number of graphs added at target_n
@@ -336,7 +361,7 @@ def build_partition(
             profiles2_data.append((h, p.tobytes(), max_edges, graphs_info))
 
         if profiles1_data and profiles2_data:
-            work_items.append((n1, n2, profiles1_data, profiles2_data, T, use_profile_domination_lattice))
+            work_items.append((n1, n2, profiles1_data, profiles2_data, T, use_profile_domination_lattice, S, S_max))
 
     # Process in parallel
     if num_workers > 1 and len(work_items) > 1:
@@ -381,7 +406,9 @@ def build_range(
     use_profile_domination: bool = False,
     use_profile_domination_lattice: bool = False,
     use_depth_domination: bool = False,
-    progress_callback: Callable[[int, int, int, int, int, int, float], None] | None = None
+    progress_callback: Callable[[int, int, int, int, int, int, float], None] | None = None,
+    S: int | None = None,
+    S_max: int | None = None
 ) -> FastRegistry:
     """
     Build registry for range [start_n, end_n] using partition-based approach.
@@ -394,17 +421,19 @@ def build_range(
         start_n: Starting vertex count (must have data for n < start_n in registry)
         end_n: Ending vertex count
         registry: Existing registry (or None to start fresh from n=1)
-        T: Pruning threshold for K_{T,T}
+        T: Pruning threshold for K_{T,T} (legacy, prefer S/S_max)
         num_workers: Number of parallel workers (default: cpu_count)
         checkpoint_dir: Directory for checkpoints (None = no checkpoints)
         checkpoint_interval: Save checkpoint every N vertex counts
         export_dir: Directory for incremental exports (None = no exports)
-        s_max: Maximum s value for exports
-        t_max: Maximum t value for exports
+        s_max: Maximum s value for exports (overridden by S if provided)
+        t_max: Maximum t value for exports (overridden by S_max if provided)
         use_profile_domination: Enable profile domination pruning (batch mode)
         use_profile_domination_lattice: Enable lattice-based profile domination
         use_depth_domination: Enable depth domination pruning
         progress_callback: callback(n, end_n, added, profiles, total, cumulative, time_sec)
+        S: Profile truncation index (only store profile up to index S)
+        S_max: Prune K_{S,S_max} and export up to K_{i,S_max} for i <= S
 
     Returns:
         FastRegistry with computed data
@@ -442,7 +471,9 @@ def build_range(
             T=T,
             num_workers=num_workers,
             use_profile_domination_lattice=use_profile_domination_lattice,
-            progress_callback=None  # Handle progress at this level
+            progress_callback=None,  # Handle progress at this level
+            S=S,
+            S_max=S_max
         )
 
         cumulative += registry.graph_count(target_n)
@@ -460,8 +491,14 @@ def build_range(
         # Incremental export after each n
         if export_dir:
             from .fast_builder import export_extremal_analysis
-            for s in range(1, min(s_max, T or s_max) + 1):
-                for t in range(s, min(t_max, T or t_max) + 1):
+            # Determine export range based on S and S_max if provided
+            effective_s_max = S if S is not None else s_max
+            effective_t_max = S_max if S_max is not None else t_max
+
+            # Export K_{i,j} where i <= S and j <= min(max_n, S_max)
+            for s in range(1, effective_s_max + 1):
+                # For each s, export up to effective_t_max (or target_n if smaller)
+                for t in range(s, min(effective_t_max, target_n) + 1):
                     export_path = export_dir / f"extremal_K{s}{t}.json"
                     export_extremal_analysis(registry, s, t, export_path)
 
