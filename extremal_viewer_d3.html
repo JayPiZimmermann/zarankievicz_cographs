@@ -658,7 +658,11 @@
 
             // Populate s,t filter
             const stSet = new Set(allGraphs.map(g => `${g.s},${g.t}`));
-            Array.from(stSet).sort().forEach(st => {
+            Array.from(stSet).sort((a, b) => {
+                const [s1, t1] = a.split(',').map(Number);
+                const [s2, t2] = b.split(',').map(Number);
+                return s1 !== s2 ? s1 - s2 : t1 - t2;
+            }).forEach(st => {
                 const [s, t] = st.split(',');
                 stSelect.append("option")
                     .attr("value", st)
@@ -700,6 +704,14 @@
                 if (nFilter && g.n !== parseInt(nFilter)) return false;
                 if (exceptionalOnly && !g.is_exceptional) return false;
                 return true;
+            });
+
+            // Sort numerically by s, t, n, then struct_index
+            filteredGraphs.sort((a, b) => {
+                if (a.s !== b.s) return a.s - b.s;
+                if (a.t !== b.t) return a.t - b.t;
+                if (a.n !== b.n) return a.n - b.n;
+                return a.struct_index - b.struct_index;
             });
 
             renderGraphList();
