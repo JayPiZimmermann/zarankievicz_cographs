@@ -13,6 +13,11 @@ cache/
 exports_withDuplicates/
 checkpoints*/
 
+# Analysis and CSV
+analysis/
+csv/
+*.csv
+
 # IDE
 .idea/
 .vscode/
