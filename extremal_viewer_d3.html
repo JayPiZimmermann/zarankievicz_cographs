@@ -47,6 +47,87 @@
             opacity: 0.9;
         }
 
+        #header .folder-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #header .folder-selector select {
+            padding: 6px 12px;
+            border-radius: 5px;
+            border: none;
+            font-size: 13px;
+            background: rgba(255,255,255,0.9);
+            cursor: pointer;
+            min-width: 180px;
+        }
+
+        #header .folder-selector select:disabled {
+            opacity: 0.7;
+            cursor: wait;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .loading-box {
+            background: white;
+            padding: 30px 50px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .loading-box .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e9ecef;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .no-folder-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c757d;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .no-folder-message h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .no-folder-message p {
+            font-size: 14px;
+            max-width: 300px;
+        }
+
         #sidebar {
             background: white;
             border-right: 1px solid #dee2e6;
@@ -309,9 +390,26 @@
     <div id="app">
         <div id="header">
             <h1>Extremal Cograph Viewer</h1>
+            <div class="folder-selector">
+                <label style="font-size: 13px;">Exports folder:</label>
+                <select id="folder-select">
+                    <option value="">-- Select folder --</option>
+                </select>
+                <label style="font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                    <input type="checkbox" id="force-recalculate" style="cursor: pointer;">
+                    Recalculate
+                </label>
+            </div>
             <div class="stats">
                 <span id="total-graphs">0</span> graphs loaded
                 | <span id="current-graph-label">Select a graph</span>
+            </div>
+        </div>
+
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="loading-box">
+                <div class="spinner"></div>
+                <div>Loading graphs...</div>
             </div>
         </div>
 
@@ -361,16 +459,30 @@
                 <div class="slider-group">
                     <label>
                         <span>Link Strength</span>
-                        <span id="link-strength-val">1.0</span>
+                        <span id="link-strength-val">30</span>
                     </label>
-                    <input type="range" id="link-strength" min="0" max="2" step="0.1" value="1">
+                    <input type="range" id="link-strength" min="-100" max="100" step="1" value="30">
                 </div>
                 <div class="slider-group">
                     <label>
                         <span>Charge Force</span>
                         <span id="charge-strength-val">-30</span>
                     </label>
-                    <input type="range" id="charge-strength" min="-100" max="0" step="5" value="-30">
+                    <input type="range" id="charge-strength" min="-100" max="100" step="1" value="-30">
+                </div>
+                <div class="slider-group">
+                    <label>
+                        <span>Sum Component Force</span>
+                        <span id="sum-force-val">0</span>
+                    </label>
+                    <input type="range" id="sum-force" min="-100" max="100" step="1" value="0">
+                </div>
+                <div class="slider-group">
+                    <label>
+                        <span>Product Component Force</span>
+                        <span id="product-force-val">0</span>
+                    </label>
+                    <input type="range" id="product-force" min="-100" max="100" step="1" value="0">
                 </div>
             </div>
             <svg id="graph-svg"></svg>
@@ -390,7 +502,8 @@
         let currentGraph = null;
         let simulation = null;
         let physicsEnabled = true;
-        let showLabels = true;
+        let showLabels = false;
+        let currentFolder = null;
 
         // SVG setup
         const svg = d3.select("#graph-svg");
@@ -413,17 +526,138 @@
 
         svg.call(zoom);
 
-        // Load data
-        d3.json("extremal_graphs.json").then(data => {
-            allGraphs = data;
-            initializeFilters();
-            applyFilters();
+        // Show/hide loading overlay
+        function showLoading(show) {
+            document.getElementById("loading-overlay").classList.toggle("hidden", !show);
+            document.getElementById("folder-select").disabled = show;
+        }
+
+        // Show "no folder selected" message
+        function showNoFolderMessage() {
+            const list = d3.select("#graph-list");
+            list.html(`
+                <div class="no-folder-message">
+                    <h3>No folder selected</h3>
+                    <p>Select an exports folder from the dropdown above to view graphs</p>
+                </div>
+            `);
+            d3.select("#total-graphs").text("0");
+            d3.select("#current-graph-label").text("Select a folder first");
+
+            // Clear the graph display
+            linkGroup.selectAll("*").remove();
+            nodeGroup.selectAll("*").remove();
+            labelGroup.selectAll("*").remove();
+
+            // Clear info panel
+            d3.select("#info-content").html(`
+                <p style="color: #6c757d; font-size: 13px;">Select a folder and graph to view details</p>
+            `);
+        }
+
+        // Load available folders
+        async function loadFolders() {
+            try {
+                const response = await fetch("/api/folders");
+                const folders = await response.json();
+
+                const select = document.getElementById("folder-select");
+                // Clear existing options except the first
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+
+                folders.forEach(folder => {
+                    const option = document.createElement("option");
+                    option.value = folder.path;
+                    const cacheIndicator = folder.has_cache ? " [cached]" : "";
+                    option.textContent = `${folder.name} (${folder.file_count} files)${cacheIndicator}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Failed to load folders:", error);
+            }
+        }
+
+        // Handle folder selection
+        async function selectFolder(folderPath, force = false) {
+            if (!folderPath) {
+                showNoFolderMessage();
+                return;
+            }
+
+            showLoading(true);
+            currentFolder = folderPath;
+
+            try {
+                const response = await fetch("/api/select-folder", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ folder: folderPath, force: force })
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    alert("Error: " + (result.error || "Failed to load folder"));
+                    showLoading(false);
+                    return;
+                }
+
+                // Load data directly from response
+                allGraphs = result.data || [];
+                currentGraph = null;
+
+                if (allGraphs.length === 0) {
+                    showNoFolderMessage();
+                    return;
+                }
+
+                // Update status to show if cache was used
+                const statusText = result.used_cache ? "(cached)" : "(generated)";
+                console.log(`Loaded ${allGraphs.length} graphs ${statusText}`);
+
+                // Refresh folder list to update cache indicators
+                const currentValue = document.getElementById("folder-select").value;
+                await loadFolders();
+                document.getElementById("folder-select").value = currentValue;
+
+                initializeFilters();
+                applyFilters();
+
+            } catch (error) {
+                console.error("Failed to select folder:", error);
+                alert("Failed to load folder: " + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadFolders();
+
+            // Set up folder selector
+            document.getElementById("folder-select").addEventListener("change", (e) => {
+                const forceRecalc = document.getElementById("force-recalculate").checked;
+                selectFolder(e.target.value, forceRecalc);
+            });
+
+            // Show no folder message initially
+            showNoFolderMessage();
         });
 
         function initializeFilters() {
+            // Clear existing options first
+            const stSelect = d3.select("#filter-st");
+            stSelect.selectAll("option").remove();
+            stSelect.append("option").attr("value", "").text("All");
+
+            const nSelect = d3.select("#filter-n");
+            nSelect.selectAll("option").remove();
+            nSelect.append("option").attr("value", "").text("All");
+
             // Populate s,t filter
             const stSet = new Set(allGraphs.map(g => `${g.s},${g.t}`));
-            const stSelect = d3.select("#filter-st");
             Array.from(stSet).sort().forEach(st => {
                 const [s, t] = st.split(',');
                 stSelect.append("option")
@@ -433,12 +667,14 @@
 
             // Populate n filter
             const nSet = new Set(allGraphs.map(g => g.n));
-            const nSelect = d3.select("#filter-n");
             Array.from(nSet).sort((a, b) => a - b).forEach(n => {
                 nSelect.append("option")
                     .attr("value", n)
                     .text(`n = ${n}`);
             });
+
+            // Reset exceptional checkbox
+            d3.select("#filter-exceptional").property("checked", false);
 
             // Event listeners
             d3.select("#filter-st").on("change", applyFilters);
@@ -448,6 +684,8 @@
             // Slider listeners
             d3.select("#link-strength").on("input", updateLinkStrength);
             d3.select("#charge-strength").on("input", updateChargeStrength);
+            d3.select("#sum-force").on("input", updateSumForce);
+            d3.select("#product-force").on("input", updateProductForce);
 
             d3.select("#total-graphs").text(allGraphs.length);
         }
@@ -522,11 +760,6 @@
             // Prepare data
             const nodes = graph.nodes.map(n => ({...n}));
             const links = graph.links.map(l => ({...l}));
-
-            // Color scale based on depth
-            const maxDepth = d3.max(nodes, d => d.depth) || 1;
-            const colorScale = d3.scaleSequential(d3.interpolateViridis)
-                .domain([0, maxDepth]);
 
             // Clear existing
             linkGroup.selectAll("*").remove();
@@ -614,13 +847,19 @@
                 return -50;
             }
 
+            // Get current slider values for component forces
+            const sumForceVal = parseFloat(d3.select("#sum-force").property("value")) / 100;
+            const productForceVal = parseFloat(d3.select("#product-force").property("value")) / 100;
+            const linkStrengthVal = parseFloat(d3.select("#link-strength").property("value"));
+            const chargeStrengthVal = parseFloat(d3.select("#charge-strength").property("value"));
+
             simulation = d3.forceSimulation(nodes)
                 .force("link", d3.forceLink(links)
                     .id(d => d.id)
                     .distance(linkDistance)
-                    .strength(linkStrength))
+                    .strength(d => linkStrengthVal / 100))
                 .force("charge", d3.forceManyBody()
-                    .strength(chargeStrength))
+                    .strength(chargeStrengthVal))
                 .force("center", d3.forceCenter(width / 2, height / 2).strength(0.05))
                 .force("collision", d3.forceCollide().radius(12))
                 .force("radial", d3.forceRadial(d => {
@@ -628,6 +867,8 @@
                     if (d.isHub) return 0;
                     return 150;
                 }, width / 2, height / 2).strength(d => d.isHub ? 0 : 0.02))
+                .force("sumComponent", forceComponentGroup(nodes, "sum_component", sumForceVal))
+                .force("productComponent", forceComponentGroup(nodes, "product_component", productForceVal))
                 .alpha(0.5)
                 .alphaDecay(0.02);
 
@@ -643,7 +884,7 @@
                 .join("circle")
                 .attr("class", "node")
                 .attr("r", 8)
-                .attr("fill", d => colorScale(d.depth))
+                .attr("fill", "#000000")
                 .call(drag(simulation));
 
             // Draw labels
@@ -741,10 +982,10 @@
 
         function updateLinkStrength() {
             const val = parseFloat(d3.select("#link-strength").property("value"));
-            d3.select("#link-strength-val").text(val.toFixed(1));
+            d3.select("#link-strength-val").text(val);
 
             if (simulation) {
-                simulation.force("link").strength(val);
+                simulation.force("link").strength(val / 100);
                 simulation.alpha(0.3).restart();
             }
         }
@@ -757,6 +998,75 @@
                 simulation.force("charge").strength(val);
                 simulation.alpha(0.3).restart();
             }
+        }
+
+        function updateSumForce() {
+            const val = parseFloat(d3.select("#sum-force").property("value"));
+            d3.select("#sum-force-val").text(val);
+
+            if (simulation && simulation.force("sumComponent")) {
+                simulation.force("sumComponent").strength(val / 100);
+                simulation.alpha(0.3).restart();
+            }
+        }
+
+        function updateProductForce() {
+            const val = parseFloat(d3.select("#product-force").property("value"));
+            d3.select("#product-force-val").text(val);
+
+            if (simulation && simulation.force("productComponent")) {
+                simulation.force("productComponent").strength(val / 100);
+                simulation.alpha(0.3).restart();
+            }
+        }
+
+        // Custom force for component-based attraction/repulsion
+        function forceComponentGroup(nodes, componentKey, strength) {
+            let strengthVal = strength;
+
+            function force(alpha) {
+                if (Math.abs(strengthVal) < 0.001) return;
+
+                // Group nodes by their component
+                const groups = new Map();
+                nodes.forEach(n => {
+                    const comp = n[componentKey];
+                    if (comp !== undefined && comp !== null) {
+                        if (!groups.has(comp)) groups.set(comp, []);
+                        groups.get(comp).push(n);
+                    }
+                });
+
+                // Apply forces within each group
+                groups.forEach(groupNodes => {
+                    if (groupNodes.length < 2) return;
+
+                    // Calculate group center
+                    let cx = 0, cy = 0;
+                    groupNodes.forEach(n => { cx += n.x; cy += n.y; });
+                    cx /= groupNodes.length;
+                    cy /= groupNodes.length;
+
+                    // Apply force toward/away from center
+                    groupNodes.forEach(n => {
+                        const dx = cx - n.x;
+                        const dy = cy - n.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+                        // Positive strength = attract, negative = repel
+                        const factor = strengthVal * alpha * 0.5;
+                        n.vx += (dx / dist) * factor;
+                        n.vy += (dy / dist) * factor;
+                    });
+                });
+            }
+
+            force.strength = function(s) {
+                if (arguments.length) { strengthVal = s; return force; }
+                return strengthVal;
+            };
+
+            return force;
         }
 
         function updateInfoPanel(graph) {

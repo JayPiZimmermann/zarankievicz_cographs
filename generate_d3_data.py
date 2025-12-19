@@ -8,6 +8,7 @@ import json
 import sys
 import math
 import csv
+import argparse
 from pathlib import Path
 from collections import defaultdict
 
@@ -460,11 +461,16 @@ def assign_vertex_ids(node, vertex_map, counter):
 
 
 def main():
-    print("Generating D3.js visualization data...")
+    parser = argparse.ArgumentParser(description="Generate D3.js visualization data from extremal graph exports")
+    parser.add_argument("export_dir", nargs="?", default="exports",
+                        help="Path to the exports directory (default: exports)")
+    args = parser.parse_args()
 
-    export_dir = Path("exports")
+    export_dir = Path(args.export_dir)
+    print(f"Generating D3.js visualization data from: {export_dir}")
+
     if not export_dir.exists():
-        print("Error: exports directory not found")
+        print(f"Error: exports directory not found: {export_dir}")
         sys.exit(1)
 
     # Load exceptional cases
@@ -531,6 +537,19 @@ def main():
                         # Check if exceptional
                         is_exceptional = (s, t, n) in exceptional_cases
 
+                        # Add sum/product component properties for force simulation
+                        for vinfo in vertex_infos:
+                            # Find first sum and product components in path
+                            sum_comp = None
+                            product_comp = None
+                            for comp in vinfo.get('components', []):
+                                if comp['op'] == 'sum' and sum_comp is None:
+                                    sum_comp = f"{comp['id']}_{comp['child']}"
+                                elif comp['op'] == 'product' and product_comp is None:
+                                    product_comp = f"{comp['id']}_{comp['child']}"
+                            vinfo['sum_component'] = sum_comp
+                            vinfo['product_component'] = product_comp
+
                         # Build graph object
                         graph_obj = {
                             'id': f"K{s}_{t}_n{n}_{struct_idx}",
@@ -566,8 +585,8 @@ def main():
             print(f"Reached maximum of {max_graphs} graphs")
             break
 
-    # Write output
-    output_file = "extremal_graphs.json"
+    # Write output to the exports folder as cache
+    output_file = export_dir / "visualization_cache.json"
     with open(output_file, 'w') as f:
         json.dump(all_graphs, f, indent=2)
 
