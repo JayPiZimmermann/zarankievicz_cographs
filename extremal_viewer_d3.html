@@ -921,12 +921,12 @@
                 .attr("stroke-opacity", 0.6)
                 .attr("stroke-width", 1.5);
 
-            // Draw nodes
+            // Draw nodes (root in purple, others in black)
             const node = cotreeNodeGroup.selectAll("circle")
                 .data(nodes)
                 .join("circle")
                 .attr("r", d => d.type === "leaf" ? 8 : 14)
-                .attr("fill", "#000")
+                .attr("fill", d => d.depth === 0 ? "#8b5cf6" : "#000")
                 .attr("stroke", "#fff")
                 .attr("stroke-width", 2)
                 .call(cotreeDrag(cotreeSimulation));
