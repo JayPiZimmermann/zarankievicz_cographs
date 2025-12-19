@@ -234,9 +234,33 @@ def main():
             n = int(n_str)
             n_data = data["extremal_by_n"][n_str]
 
-            # Take only first few structures per (s,t,n)
+            # Handle both JSON formats:
+            # Format 1: "structures" array with {structure, edges, depth, ...}
+            # Format 2: "graphs" array + "analyses" array
             max_per_n = 3
-            for struct_idx, struct_data in enumerate(n_data["structures"][:max_per_n]):
+
+            if "structures" in n_data:
+                # Format 1: structures array
+                structures_list = n_data["structures"][:max_per_n]
+                total_structures = len(n_data["structures"])
+            elif "graphs" in n_data:
+                # Format 2: graphs + analyses arrays
+                graphs = n_data.get("graphs", [])
+                analyses = n_data.get("analyses", [])
+                structures_list = []
+                for i, (graph_str, analysis) in enumerate(zip(graphs[:max_per_n], analyses[:max_per_n])):
+                    structures_list.append({
+                        "structure": analysis.get("structure_str", graph_str),
+                        "edges": analysis.get("edges", n_data.get("ex", 0)),
+                        "depth": analysis.get("depth"),
+                        "last_op": analysis.get("last_op"),
+                        "component_sizes": analysis.get("component_sizes", [])
+                    })
+                total_structures = len(graphs)
+            else:
+                continue
+
+            for struct_idx, struct_data in enumerate(structures_list):
                 struct_str = struct_data["structure"]
                 edges_count = struct_data["edges"]
 
@@ -283,9 +307,11 @@ def main():
                         'n': n,
                         'depth': graph_depth,
                         'struct_index': struct_idx,
-                        'total_structures': len(n_data["structures"]),
+                        'total_structures': total_structures,
                         'edges_count': edges_count,
                         'structure': struct_str,
+                        'last_op': struct_data.get("last_op"),
+                        'component_sizes': struct_data.get("component_sizes", []),
                         'nodes': vertex_infos,
                         'links': edges
                     }
