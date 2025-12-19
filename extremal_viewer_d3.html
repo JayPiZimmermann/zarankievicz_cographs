@@ -499,15 +499,8 @@
 
         <div id="main">
             <div class="controls-panel">
-                <!-- View mode toggle -->
-                <div class="control-item" style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #dee2e6;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600;">
-                        <input type="checkbox" id="split-view-mode" checked style="width: 18px; height: 18px; cursor: pointer;"> Split View
-                    </label>
-                </div>
-
-                <!-- Split view controls (Graph/Cotree checkboxes) -->
-                <div id="split-view-controls" class="control-item" style="margin-bottom: 15px;">
+                <!-- Pane visibility controls -->
+                <div class="control-item" style="margin-bottom: 15px;">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; margin-bottom: 10px;">
                         <input type="checkbox" id="show-graph" checked style="width: 18px; height: 18px; cursor: pointer;"> Graph
                     </label>
@@ -529,6 +522,13 @@
                 <!-- Graph sliders -->
                 <div id="graph-sliders">
                     <div style="font-size: 11px; color: #667eea; font-weight: 600; margin: 10px 0 5px; border-top: 1px solid #dee2e6; padding-top: 10px;">Graph</div>
+                    <div class="slider-group">
+                        <label>
+                            <span>Boundary</span>
+                            <span id="graph-boundary-val">20</span>
+                        </label>
+                        <input type="range" id="graph-boundary" min="0" max="200" step="5" value="20">
+                    </div>
                     <div class="slider-group">
                         <label>
                             <span>Link Strength</span>
@@ -562,6 +562,16 @@
                 <!-- Cotree sliders -->
                 <div id="cotree-sliders">
                     <div style="font-size: 11px; color: #667eea; font-weight: 600; margin: 10px 0 5px; border-top: 1px solid #dee2e6; padding-top: 10px;">Cotree</div>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; margin-bottom: 10px;">
+                        <input type="checkbox" id="cotree-hierarchical" style="width: 16px; height: 16px; cursor: pointer;"> Hierarchical
+                    </label>
+                    <div class="slider-group">
+                        <label>
+                            <span>Boundary</span>
+                            <span id="cotree-boundary-val">20</span>
+                        </label>
+                        <input type="range" id="cotree-boundary" min="0" max="200" step="5" value="20">
+                    </div>
                     <div class="slider-group">
                         <label>
                             <span>Link Strength</span>
@@ -608,7 +618,9 @@
         let physicsEnabled = true;
         let showLabels = false;
         let currentFolder = null;
-        let splitViewMode = true;
+        let graphBoundary = 20;
+        let cotreeBoundary = 20;
+        let cotreeHierarchical = false;
 
         // Graph SVG setup
         const svg = d3.select("#graph-svg");
@@ -652,44 +664,18 @@
             });
         cotreeSvg.call(cotreeZoom);
 
-        // Toggle between single view and split view modes
-        function toggleViewMode() {
-            splitViewMode = document.getElementById("split-view-mode").checked;
-            updatePaneVisibility();
-
-            // Reload current graph to apply changes
-            if (currentGraph) {
-                loadGraph(currentGraph);
-            }
-        }
-
         // Pane visibility toggles
         function updatePaneVisibility() {
             const showGraph = document.getElementById("show-graph").checked;
             const showCotree = document.getElementById("show-cotree").checked;
 
-            if (splitViewMode) {
-                // Split view mode: show controls and both panes as configured
-                document.getElementById("split-view-controls").style.display = "block";
-                document.getElementById("graph-pane").classList.toggle("hidden", !showGraph);
-                document.getElementById("cotree-pane").classList.toggle("hidden", !showCotree);
-                document.getElementById("split-divider").classList.toggle("hidden", !showGraph || !showCotree);
+            document.getElementById("graph-pane").classList.toggle("hidden", !showGraph);
+            document.getElementById("cotree-pane").classList.toggle("hidden", !showCotree);
+            document.getElementById("split-divider").classList.toggle("hidden", !showGraph || !showCotree);
 
-                // Show/hide slider groups based on pane visibility
-                document.getElementById("graph-sliders").style.display = showGraph ? "block" : "none";
-                document.getElementById("cotree-sliders").style.display = showCotree ? "block" : "none";
-            } else {
-                // Single view mode: hide split controls, show only graph pane full size
-                document.getElementById("split-view-controls").style.display = "none";
-                document.getElementById("graph-pane").classList.remove("hidden");
-                document.getElementById("graph-pane").style.flex = "1";
-                document.getElementById("cotree-pane").classList.add("hidden");
-                document.getElementById("split-divider").classList.add("hidden");
-
-                // Show only graph sliders in single view
-                document.getElementById("graph-sliders").style.display = "block";
-                document.getElementById("cotree-sliders").style.display = "none";
-            }
+            // Show/hide slider groups based on pane visibility
+            document.getElementById("graph-sliders").style.display = showGraph ? "block" : "none";
+            document.getElementById("cotree-sliders").style.display = showCotree ? "block" : "none";
 
             // Update viewboxes after visibility change
             setTimeout(updateDimensions, 50);
@@ -826,7 +812,7 @@
             return { nodes, links };
         }
 
-        // Render cotree visualization using hierarchical tree layout
+        // Render cotree visualization
         function renderCotree(graph) {
             if (!graph || !graph.structure) return;
 
@@ -849,32 +835,50 @@
                 cotreeSimulation.stop();
             }
 
-            // Create hierarchy and use radial layout for initial positions
+            // Create hierarchy
             const root = d3.hierarchy(hierarchyData);
-
-            // Flatten to nodes and links for D3
             const descendants = root.descendants();
-            const nodes = descendants.map((d, i) => {
-                // Place nodes in a radial pattern based on depth
-                const depth = d.depth;
-                const siblings = d.parent ? d.parent.children : [d];
-                const siblingIndex = siblings.indexOf(d);
-                const siblingCount = siblings.length;
 
-                // Radial positioning: root at center, children spread in circles
-                const baseAngle = d.parent ?
-                    (2 * Math.PI * siblingIndex / siblingCount) + (Math.random() - 0.5) * 0.3 : 0;
-                const radius = depth * 60 + (Math.random() - 0.5) * 20;
+            // Create nodes based on layout mode
+            let nodes;
+            if (cotreeHierarchical) {
+                // Use d3.tree for top-down hierarchical layout
+                const treeLayout = d3.tree()
+                    .size([cotreeWidth - 80, cotreeHeight - 60]);
+                treeLayout(root);
 
-                return {
+                nodes = descendants.map((d, i) => ({
                     id: i,
-                    x: cotreeWidth / 2 + Math.cos(baseAngle) * radius,
-                    y: cotreeHeight / 2 + Math.sin(baseAngle) * radius,
+                    x: d.x + 40,
+                    y: d.y + 30,
+                    treeX: d.x + 40,
+                    treeY: d.y + 30,
                     type: d.data.type,
                     label: d.data.label,
-                    depth: depth
-                };
-            });
+                    depth: d.depth
+                }));
+            } else {
+                // Radial layout - children can go all around
+                nodes = descendants.map((d, i) => {
+                    const depth = d.depth;
+                    const siblings = d.parent ? d.parent.children : [d];
+                    const siblingIndex = siblings.indexOf(d);
+                    const siblingCount = siblings.length;
+
+                    const baseAngle = d.parent ?
+                        (2 * Math.PI * siblingIndex / siblingCount) + (Math.random() - 0.5) * 0.3 : 0;
+                    const radius = depth * 60 + (Math.random() - 0.5) * 20;
+
+                    return {
+                        id: i,
+                        x: cotreeWidth / 2 + Math.cos(baseAngle) * radius,
+                        y: cotreeHeight / 2 + Math.sin(baseAngle) * radius,
+                        type: d.data.type,
+                        label: d.data.label,
+                        depth: depth
+                    };
+                });
+            }
 
             const links = root.links().map(d => ({
                 source: nodes[descendants.indexOf(d.source)],
@@ -889,7 +893,7 @@
             const scaleFactor = Math.max(1, Math.sqrt(nodes.length / 20));
             const linkDist = 50 / scaleFactor;
 
-            // Create force simulation - nodes can move freely in all directions
+            // Create force simulation
             cotreeSimulation = d3.forceSimulation(nodes)
                 .force("link", d3.forceLink(links)
                     .id(d => d.id)
@@ -901,6 +905,13 @@
                 .force("collision", d3.forceCollide().radius(d => d.type === "leaf" ? 10 : 16))
                 .alpha(0.5)
                 .alphaDecay(0.02);
+
+            // Add hierarchical force if in hierarchical mode
+            if (cotreeHierarchical) {
+                cotreeSimulation
+                    .force("x", d3.forceX(d => d.treeX).strength(0.1))
+                    .force("y", d3.forceY(d => d.treeY).strength(0.3));
+            }
 
             // Draw links
             const link = cotreeLinkGroup.selectAll("line")
@@ -928,12 +939,11 @@
                 .text(d => d.label);
 
             // Update positions on tick with boundary constraints
-            const padding = 20;
             cotreeSimulation.on("tick", () => {
                 // Clamp nodes within boundaries
                 nodes.forEach(d => {
-                    d.x = Math.max(padding, Math.min(cotreeWidth - padding, d.x));
-                    d.y = Math.max(padding, Math.min(cotreeHeight - padding, d.y));
+                    d.x = Math.max(cotreeBoundary, Math.min(cotreeWidth - cotreeBoundary, d.x));
+                    d.y = Math.max(cotreeBoundary, Math.min(cotreeHeight - cotreeBoundary, d.y));
                 });
 
                 link
@@ -1156,12 +1166,15 @@
                 selectFolder(e.target.value, forceRecalc);
             });
 
-            // Set up view mode toggle
-            document.getElementById("split-view-mode").addEventListener("change", toggleViewMode);
-
             // Set up pane visibility toggles
             document.getElementById("show-graph").addEventListener("change", updatePaneVisibility);
             document.getElementById("show-cotree").addEventListener("change", updatePaneVisibility);
+
+            // Set up hierarchical toggle
+            document.getElementById("cotree-hierarchical").addEventListener("change", () => {
+                cotreeHierarchical = document.getElementById("cotree-hierarchical").checked;
+                if (currentGraph) renderCotree(currentGraph);
+            });
 
             // Initialize slider visibility
             updatePaneVisibility();
@@ -1206,12 +1219,14 @@
             d3.select("#filter-n").on("change", applyFilters);
 
             // Graph slider listeners
+            d3.select("#graph-boundary").on("input", updateGraphBoundary);
             d3.select("#graph-link-strength").on("input", updateGraphLinkStrength);
             d3.select("#graph-charge-strength").on("input", updateGraphChargeStrength);
             d3.select("#graph-sum-force").on("input", updateGraphSumForce);
             d3.select("#graph-product-force").on("input", updateGraphProductForce);
 
             // Cotree slider listeners
+            d3.select("#cotree-boundary").on("input", updateCotreeBoundary);
             d3.select("#cotree-link-strength").on("input", updateCotreeLinkStrength);
             d3.select("#cotree-charge-strength").on("input", updateCotreeChargeStrength);
 
@@ -1431,12 +1446,11 @@
                 .style("pointer-events", "none");
 
             // Update positions on tick with boundary constraints
-            const padding = 20;
             simulation.on("tick", () => {
                 // Clamp nodes within boundaries
                 nodes.forEach(d => {
-                    d.x = Math.max(padding, Math.min(width - padding, d.x));
-                    d.y = Math.max(padding, Math.min(height - padding, d.y));
+                    d.x = Math.max(graphBoundary, Math.min(width - graphBoundary, d.x));
+                    d.y = Math.max(graphBoundary, Math.min(height - graphBoundary, d.y));
                 });
 
                 link
@@ -1456,8 +1470,8 @@
 
             updateInfoPanel(graph);
 
-            // Render cotree in the second pane (only in split view mode)
-            if (splitViewMode && document.getElementById("show-cotree").checked) {
+            // Render cotree in the second pane
+            if (document.getElementById("show-cotree").checked) {
                 renderCotree(graph);
             }
         }
@@ -1553,6 +1567,16 @@
                 simulation.force("charge").strength(val);
                 simulation.alpha(0.3).restart();
             }
+        }
+
+        function updateGraphBoundary() {
+            graphBoundary = parseFloat(d3.select("#graph-boundary").property("value"));
+            d3.select("#graph-boundary-val").text(graphBoundary);
+        }
+
+        function updateCotreeBoundary() {
+            cotreeBoundary = parseFloat(d3.select("#cotree-boundary").property("value"));
+            d3.select("#cotree-boundary-val").text(cotreeBoundary);
         }
 
         function updateCotreeLinkStrength() {
