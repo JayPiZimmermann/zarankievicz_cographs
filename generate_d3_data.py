@@ -15,6 +15,35 @@ sys.path.insert(0, str(Path(__file__).parent))
 from analyze_conjectures import parse_structure, StructureNode
 
 
+def calculate_alternation_depth(node, parent_op=None):
+    """
+    Calculate the depth as the maximum number of switches between sum and product.
+
+    Args:
+        node: StructureNode to analyze
+        parent_op: The operation of the parent node (None, 'sum', or 'product')
+
+    Returns:
+        The maximum alternation depth in this subtree
+    """
+    if node.op == "vertex":
+        return 0
+
+    # Count this node as a switch if it differs from parent
+    switch = 1 if parent_op is not None and node.op != parent_op else 0
+    if parent_op is None:
+        # Root node counts as depth 1
+        switch = 1
+
+    # Recurse into children
+    max_child_depth = 0
+    for child in node.children:
+        child_depth = calculate_alternation_depth(child, node.op)
+        max_child_depth = max(max_child_depth, child_depth)
+
+    return switch + max_child_depth
+
+
 class VertexLayouter:
     """
     Hierarchical circle layout for cotrees.
@@ -293,10 +322,11 @@ def main():
                         vinfo['sum_component'] = sum_comp
                         vinfo['product_component'] = product_comp
 
-                    # Calculate depth: use from JSON if available, otherwise compute from vertex depths
+                    # Calculate depth: use from JSON if available, otherwise compute alternation depth
                     graph_depth = struct_data.get("depth")
-                    if graph_depth is None and vertex_infos:
-                        graph_depth = max(v.get('depth', 0) for v in vertex_infos)
+                    if graph_depth is None:
+                        # Calculate as max number of switches between sum and product
+                        graph_depth = calculate_alternation_depth(root)
 
                     # Build graph object
                     graph_obj = {
