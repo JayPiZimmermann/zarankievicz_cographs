@@ -485,105 +485,93 @@ def main():
 
     print(f"Loaded {len(exceptional_cases)} exceptional cases")
 
-    # Process graphs
-    all_files = sorted(export_dir.glob("extremal_K*.json"))
-    all_graphs = []
-
-    graph_count = 0
-    max_graphs = 500  # Limit for reasonable browser performance
-
+    # Load all files and sort by s,t values from JSON content
+    all_files = list(export_dir.glob("extremal_K*.json"))
+    file_data = []
     for filepath in all_files:
         try:
             with open(filepath) as f:
                 data = json.load(f)
-
-            s = data["s"]
-            t = data["t"]
-
-            # Process each n value
-            for n_str in sorted(data.get("extremal_by_n", {}).keys()):
-                n = int(n_str)
-
-                if n > 25:  # Skip large graphs
-                    continue
-
-                n_data = data["extremal_by_n"][n_str]
-
-                # Take only first few structures per (s,t,n)
-                max_per_n = 3
-                for struct_idx, struct_data in enumerate(n_data["structures"][:max_per_n]):
-                    if graph_count >= max_graphs:
-                        break
-
-                    struct_str = struct_data["structure"]
-                    edges_count = struct_data["edges"]
-
-                    try:
-                        # Parse structure
-                        root = parse_structure(struct_str)
-
-                        # Assign vertex IDs
-                        vertex_map = {}
-                        counter = [0]
-                        assign_vertex_ids(root, vertex_map, counter)
-
-                        # Compute layout
-                        layouter = VertexLayouter()
-                        vertex_infos, vertex_ids = layouter.layout_cotree(root)
-
-                        # Build edges
-                        edges = build_edge_list(root, vertex_map)
-
-                        # Check if exceptional
-                        is_exceptional = (s, t, n) in exceptional_cases
-
-                        # Add sum/product component properties for force simulation
-                        for vinfo in vertex_infos:
-                            # Find first sum and product components in path
-                            sum_comp = None
-                            product_comp = None
-                            for comp in vinfo.get('components', []):
-                                if comp['op'] == 'sum' and sum_comp is None:
-                                    sum_comp = f"{comp['id']}_{comp['child']}"
-                                elif comp['op'] == 'product' and product_comp is None:
-                                    product_comp = f"{comp['id']}_{comp['child']}"
-                            vinfo['sum_component'] = sum_comp
-                            vinfo['product_component'] = product_comp
-
-                        # Build graph object
-                        graph_obj = {
-                            'id': f"K{s}_{t}_n{n}_{struct_idx}",
-                            'label': f"K_{{{s},{t}}}-free, n={n}",
-                            's': s,
-                            't': t,
-                            'n': n,
-                            'struct_index': struct_idx,
-                            'total_structures': len(n_data["structures"]),
-                            'edges_count': edges_count,
-                            'structure': struct_str,
-                            'is_exceptional': is_exceptional,
-                            'nodes': vertex_infos,
-                            'links': edges
-                        }
-
-                        all_graphs.append(graph_obj)
-                        graph_count += 1
-
-                        if graph_count % 50 == 0:
-                            print(f"  Processed {graph_count} graphs...")
-
-                    except Exception as e:
-                        print(f"Error processing {filepath} n={n} struct {struct_idx}: {e}", file=sys.stderr)
-
-                if graph_count >= max_graphs:
-                    break
-
+            file_data.append((data["s"], data["t"], filepath, data))
         except Exception as e:
             print(f"Error loading {filepath}: {e}", file=sys.stderr)
 
-        if graph_count >= max_graphs:
-            print(f"Reached maximum of {max_graphs} graphs")
-            break
+    # Sort by (s, t) numerically
+    file_data.sort(key=lambda x: (x[0], x[1]))
+    print(f"Found {len(file_data)} K_{{s,t}} files")
+
+    # Process graphs
+    all_graphs = []
+    graph_count = 0
+
+    for s, t, filepath, data in file_data:
+        # Process each n value
+        for n_str in sorted(data.get("extremal_by_n", {}).keys(), key=int):
+            n = int(n_str)
+            n_data = data["extremal_by_n"][n_str]
+
+            # Take only first few structures per (s,t,n)
+            max_per_n = 3
+            for struct_idx, struct_data in enumerate(n_data["structures"][:max_per_n]):
+                struct_str = struct_data["structure"]
+                edges_count = struct_data["edges"]
+
+                try:
+                    # Parse structure
+                    root = parse_structure(struct_str)
+
+                    # Assign vertex IDs
+                    vertex_map = {}
+                    counter = [0]
+                    assign_vertex_ids(root, vertex_map, counter)
+
+                    # Compute layout
+                    layouter = VertexLayouter()
+                    vertex_infos, vertex_ids = layouter.layout_cotree(root)
+
+                    # Build edges
+                    edges = build_edge_list(root, vertex_map)
+
+                    # Check if exceptional
+                    is_exceptional = (s, t, n) in exceptional_cases
+
+                    # Add sum/product component properties for force simulation
+                    for vinfo in vertex_infos:
+                        # Find first sum and product components in path
+                        sum_comp = None
+                        product_comp = None
+                        for comp in vinfo.get('components', []):
+                            if comp['op'] == 'sum' and sum_comp is None:
+                                sum_comp = f"{comp['id']}_{comp['child']}"
+                            elif comp['op'] == 'product' and product_comp is None:
+                                product_comp = f"{comp['id']}_{comp['child']}"
+                        vinfo['sum_component'] = sum_comp
+                        vinfo['product_component'] = product_comp
+
+                    # Build graph object
+                    graph_obj = {
+                        'id': f"K{s}_{t}_n{n}_{struct_idx}",
+                        'label': f"K_{{{s},{t}}}-free, n={n}",
+                        's': s,
+                        't': t,
+                        'n': n,
+                        'struct_index': struct_idx,
+                        'total_structures': len(n_data["structures"]),
+                        'edges_count': edges_count,
+                        'structure': struct_str,
+                        'is_exceptional': is_exceptional,
+                        'nodes': vertex_infos,
+                        'links': edges
+                    }
+
+                    all_graphs.append(graph_obj)
+                    graph_count += 1
+
+                    if graph_count % 100 == 0:
+                        print(f"  Processed {graph_count} graphs...")
+
+                except Exception as e:
+                    print(f"Error processing {filepath} n={n} struct {struct_idx}: {e}", file=sys.stderr)
 
     # Write output to the exports folder as cache
     output_file = export_dir / "visualization_cache.json"
