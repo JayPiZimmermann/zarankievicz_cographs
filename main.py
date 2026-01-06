@@ -29,7 +29,7 @@ from src.incremental_cache import IncrementalRegistry, list_runs
 from src.incremental_builder import build_incremental, check_conjecture, analyze_extremal_structure
 from src.fast_builder import build_fast, check_conjecture_fast, export_extremal_analysis
 from src.compact_storage import FastRegistry
-from src.partition_builder import build_range, check_conjecture_partition
+from src.partition_builder import build_range, check_conjecture_partition, check_theorem
 
 
 def cmd_build(args):
@@ -461,6 +461,145 @@ def cmd_partition(args):
                 sample = [(n, sorted(s)) for n, s in sorted(by_n.items())[:5]]
                 print(", ".join(f"n={n}→{sizes}" for n, sizes in sample), "...")
 
+    # Check main theorem
+    if args.check_theorem:
+        import json
+        from pathlib import Path as P
+
+        print("\nChecking main theorem (Theorem 4)...")
+        print("=" * 70)
+        print("For biclique-profile P with start index s>=2:")
+        print("  Extremal graphs should be P(G1, G2) where components")
+        print("  can be partitioned with one subset summing to s-1")
+        print("=" * 70)
+
+        output_dir = P(args.export_dir) if args.export_dir else P("theorem_check")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Check theorem for each n
+        all_results = check_theorem(
+            registry,
+            s_max=args.s_max,
+            t_max=args.t_max,
+            small_n_threshold=10  # Include full structure for n <= 10
+        )
+
+        # Output summary
+        total_counterexamples = 0
+        profiles_none_satisfy = 0  # Profiles where NO graph satisfies theorem
+
+        for n, n_results in sorted(all_results.items()):
+            if isinstance(n, int):
+                n_counterexamples = len(n_results.get("counterexamples", []))
+                total_counterexamples += n_counterexamples
+                profiles_none_satisfy += n_results["summary"]["profiles_none_satisfy"]
+
+                if n_counterexamples > 0:
+                    summary = n_results["summary"]
+                    print(f"\nn={n}: {n_counterexamples} counterexample graphs "
+                          f"({summary['profiles_with_start_index_ge_2']} profiles checked)")
+                    print(f"  Profiles: all_satisfy={summary['profiles_all_satisfy']}, "
+                          f"some_satisfy={summary['profiles_some_satisfy']}, "
+                          f"none_satisfy={summary['profiles_none_satisfy']}")
+
+                    for ce in n_results["counterexamples"][:5]:
+                        profile_str = str(ce['profile'][:6]) + ("..." if len(ce['profile']) > 6 else "")
+                        alt_info = ""
+                        if ce["has_other_satisfying_graph"]:
+                            alt_info = f" [ALT: {ce['satisfying_alternatives'][0]}]"
+                        else:
+                            alt_info = " [NO ALTERNATIVE]"
+                        print(f"  start_idx={ce['start_index']}, profile={profile_str}")
+                        print(f"    {ce['structure']} -> {ce['flattened_components']}{alt_info}")
+
+                    if n_counterexamples > 5:
+                        print(f"  ... and {n_counterexamples - 5} more")
+
+        print("\n" + "=" * 70)
+        if total_counterexamples == 0:
+            print("RESULT: No counterexamples found - theorem holds for computed range")
+        else:
+            print(f"RESULT: Found {total_counterexamples} counterexample graphs")
+            print(f"        {profiles_none_satisfy} profiles have NO satisfying graph")
+
+        # Reorganize results by profile type (profile[1:] since index 0 is always n)
+        from collections import defaultdict
+        profile_results = defaultdict(lambda: {"by_n": {}, "profile_type": None})
+
+        for n, n_results in all_results.items():
+            if not isinstance(n, int):
+                continue
+            for profile_hash, pdata in n_results.get("profiles", {}).items():
+                # Use profile[1:] as key since index 0 is always n
+                profile_type = tuple(pdata["profile"][1:]) if len(pdata["profile"]) > 1 else ()
+                profile_key = ",".join(map(str, profile_type))
+
+                if profile_results[profile_key]["profile_type"] is None:
+                    profile_results[profile_key]["profile_type"] = list(profile_type)
+
+                # Store data for this n
+                profile_results[profile_key]["by_n"][n] = {
+                    "start_index": pdata["start_index"],
+                    "edge_count": pdata["edge_count"],
+                    "graph_count": pdata["graph_count"],
+                    "graphs_satisfying": pdata["graphs_satisfying"],
+                    "graphs_not_satisfying": pdata["graphs_not_satisfying"],
+                    "has_satisfying_graph": pdata["has_satisfying_graph"],
+                    "full_profile": pdata["profile"]  # Store full profile for reference
+                }
+
+        # Save one JSON file per profile type (in format compatible with visualization)
+        for profile_key, data in profile_results.items():
+            profile_type = data["profile_type"]
+            profile_str = "_".join(map(str, profile_type)) if profile_type else "empty"
+
+            output = {
+                "profile": profile_type,  # Store profile[1:] (the "type")
+                "profile_key": profile_key,
+                "extremal_by_n": {}
+            }
+
+            for n, n_data in sorted(data["by_n"].items()):
+                # Convert to format compatible with generate_d3_data.py
+                structures = []
+                for g in n_data["graphs_satisfying"] + n_data["graphs_not_satisfying"]:
+                    structures.append({
+                        "structure": g["structure"],
+                        "edges": g["edges"],
+                        "depth": g["depth"],
+                        "last_op": g["last_op"],
+                        "component_sizes": g.get("flattened_components", [])
+                    })
+
+                output["extremal_by_n"][str(n)] = {
+                    "ex": n_data["edge_count"],
+                    "structures": structures,
+                    "count": n_data["graph_count"]
+                }
+
+            outfile = output_dir / f"extremal_profile_{profile_str}.json"
+            with open(outfile, 'w') as f:
+                json.dump(output, f, indent=2)
+
+        # Save summary
+        summary_path = output_dir / "theorem_check_summary.json"
+        summary_data = {
+            "total_counterexample_graphs": total_counterexamples,
+            "profiles_with_no_satisfying_graph": profiles_none_satisfy,
+            "max_n_checked": max(n for n in all_results.keys() if isinstance(n, int)),
+            "total_profiles": len(profile_results),
+            "by_n": {
+                n: n_results["summary"]
+                for n, n_results in all_results.items()
+                if isinstance(n, int)
+            }
+        }
+        with open(summary_path, "w") as f:
+            json.dump(summary_data, f, indent=2)
+
+        print(f"\nResults saved to: {output_dir}")
+        print(f"  {len(profile_results)} profile files (extremal_profile_*.json)")
+
     return registry
 
 
@@ -580,6 +719,8 @@ def main():
     partition_parser.add_argument("--profile-domination-lattice", action="store_true", help="Enable lattice-based profile domination (pre-filter combinations)")
     partition_parser.add_argument("--depth-domination", action="store_true", help="Enable depth domination pruning")
     partition_parser.add_argument("--check", action="store_true", help="Check conjecture after build")
+    partition_parser.add_argument("--check-theorem", action="store_true",
+                                  help="Check main theorem: for start index s>=2, extremal graphs are P(s-1, n-s+1)")
 
     args = parser.parse_args()
 

@@ -476,7 +476,7 @@
             <h2>Filters</h2>
 
             <div class="filter-group">
-                <label for="filter-st">Filter by K_{s,t}:</label>
+                <label for="filter-st" id="filter-st-label">Filter by K_{s,t}:</label>
                 <select id="filter-st">
                     <option value="">All</option>
                 </select>
@@ -517,6 +517,12 @@
                 </div>
                 <div class="control-item">
                     <button onclick="resetPositions()" class="secondary">Reset Layout</button>
+                </div>
+                <div class="control-item">
+                    <button onclick="captureScreenshot('graph')">Save Graph SVG</button>
+                </div>
+                <div class="control-item">
+                    <button onclick="captureScreenshot('cotree')">Save Cotree SVG</button>
                 </div>
 
                 <!-- Graph sliders -->
@@ -1193,18 +1199,58 @@
             nSelect.selectAll("option").remove();
             nSelect.append("option").attr("value", "").text("All");
 
-            // Populate s,t filter
-            const stSet = new Set(allGraphs.map(g => `${g.s},${g.t}`));
-            Array.from(stSet).sort((a, b) => {
-                const [s1, t1] = a.split(',').map(Number);
-                const [s2, t2] = b.split(',').map(Number);
-                return s1 !== s2 ? s1 - s2 : t1 - t2;
-            }).forEach(st => {
-                const [s, t] = st.split(',');
-                stSelect.append("option")
-                    .attr("value", st)
-                    .text(`K_{${s},${t}}`);
-            });
+            // Check if we have profile-based or K-based data
+            const hasProfiles = allGraphs.some(g => g.profile !== null && g.profile !== undefined);
+            const hasKst = allGraphs.some(g => g.s !== null && g.s !== undefined);
+
+            // Update filter label
+            const filterLabel = d3.select("#filter-st-label");
+            if (hasProfiles && !hasKst) {
+                filterLabel.text("Filter by Profile:");
+            } else {
+                filterLabel.text("Filter by K_{s,t}:");
+            }
+
+            if (hasProfiles) {
+                // Populate profile filter - group by profile[1:] since profile[0] is always n
+                const profileSet = new Map();
+                allGraphs.forEach(g => {
+                    if (g.profile) {
+                        // Use profile from index 1 onwards as key (index 0 is n, which varies)
+                        const key = g.profile.slice(1).join(',');
+                        if (!profileSet.has(key)) {
+                            profileSet.set(key, g.profile.slice(1));
+                        }
+                    }
+                });
+                Array.from(profileSet.entries()).sort((a, b) => {
+                    // Sort by profile length, then lexicographically (descending)
+                    if (a[1].length !== b[1].length) return a[1].length - b[1].length;
+                    for (let i = 0; i < a[1].length; i++) {
+                        if (a[1][i] !== b[1][i]) return b[1][i] - a[1][i];
+                    }
+                    return 0;
+                }).forEach(([key, profile]) => {
+                    stSelect.append("option")
+                        .attr("value", "profile:" + key)
+                        .text(`(∞,${profile.slice(0, 4).join(',')})${profile.length > 4 ? '...' : ''}`);
+                });
+            }
+
+            if (hasKst) {
+                // Populate s,t filter
+                const stSet = new Set(allGraphs.filter(g => g.s !== null).map(g => `${g.s},${g.t}`));
+                Array.from(stSet).sort((a, b) => {
+                    const [s1, t1] = a.split(',').map(Number);
+                    const [s2, t2] = b.split(',').map(Number);
+                    return s1 !== s2 ? s1 - s2 : t1 - t2;
+                }).forEach(st => {
+                    const [s, t] = st.split(',');
+                    stSelect.append("option")
+                        .attr("value", st)
+                        .text(`K_{${s},${t}}`);
+                });
+            }
 
             // Populate n filter
             const nSet = new Set(allGraphs.map(g => g.n));
@@ -1238,15 +1284,35 @@
             const nFilter = d3.select("#filter-n").property("value");
 
             filteredGraphs = allGraphs.filter(g => {
-                if (stFilter && `${g.s},${g.t}` !== stFilter) return false;
+                if (stFilter) {
+                    if (stFilter.startsWith("profile:")) {
+                        // Filter by profile (index 1 onwards)
+                        const profileKey = stFilter.slice(8); // Remove "profile:" prefix
+                        if (!g.profile) return false;
+                        const gProfileKey = g.profile.slice(1).join(',');
+                        if (gProfileKey !== profileKey) return false;
+                    } else {
+                        // Filter by K_{s,t}
+                        if (`${g.s},${g.t}` !== stFilter) return false;
+                    }
+                }
                 if (nFilter && g.n !== parseInt(nFilter)) return false;
                 return true;
             });
 
-            // Sort numerically by s, t, n, then struct_index
+            // Sort: profiles first by profile then n, K_{s,t} by s,t,n
             filteredGraphs.sort((a, b) => {
-                if (a.s !== b.s) return a.s - b.s;
-                if (a.t !== b.t) return a.t - b.t;
+                // If both have profiles, sort by profile then n
+                if (a.profile && b.profile) {
+                    const aKey = a.profile.slice(1).join(',');
+                    const bKey = b.profile.slice(1).join(',');
+                    if (aKey !== bKey) return aKey.localeCompare(bKey);
+                    if (a.n !== b.n) return a.n - b.n;
+                    return a.struct_index - b.struct_index;
+                }
+                // Otherwise sort by s,t,n
+                if (a.s !== b.s) return (a.s || 0) - (b.s || 0);
+                if (a.t !== b.t) return (a.t || 0) - (b.t || 0);
                 if (a.n !== b.n) return a.n - b.n;
                 return a.struct_index - b.struct_index;
             });
@@ -1678,15 +1744,29 @@
             const basicInfo = content.append("div").attr("class", "info-section");
             basicInfo.append("h3").text("Properties");
 
-            [
-                ["K_{s,t}", `K_{${graph.s},${graph.t}}`],
-                ["Vertices", graph.n],
-                ["Edges", graph.edges_count],
-                ["Cotree Depth", graph.depth !== undefined ? graph.depth : "N/A"],
-                ["Last Operation", graph.last_op || "N/A"],
-                ["Component Sizes", graph.component_sizes && graph.component_sizes.length > 0 ? `[${graph.component_sizes.join(', ')}]` : "N/A"],
-                ["Structure #", `${graph.struct_index + 1} / ${graph.total_structures}`]
-            ].forEach(([label, value]) => {
+            // Build properties list based on what data is available
+            const props = [];
+
+            if (graph.profile) {
+                // Show profile (with ∞ for index 0)
+                const profileStr = `(∞,${graph.profile.slice(1).join(',')})`;
+                props.push(["Profile", profileStr]);
+            } else if (graph.s !== null && graph.s !== undefined) {
+                props.push(["K_{s,t}", `K_{${graph.s},${graph.t}}`]);
+            }
+
+            props.push(["Vertices", graph.n]);
+            props.push(["Edges", graph.edges_count]);
+            props.push(["Cotree Depth", graph.depth !== undefined ? graph.depth : "N/A"]);
+            props.push(["Last Operation", graph.last_op || "N/A"]);
+
+            if (graph.component_sizes && graph.component_sizes.length > 0) {
+                props.push(["Component Sizes", `[${graph.component_sizes.join(', ')}]`]);
+            }
+
+            props.push(["Structure #", `${graph.struct_index + 1} / ${graph.total_structures}`]);
+
+            props.forEach(([label, value]) => {
                 const row = basicInfo.append("div").attr("class", "info-row");
                 row.append("span").attr("class", "info-label").text(label);
                 row.append("span").attr("class", "info-value").text(value);
@@ -1696,6 +1776,136 @@
             const structInfo = content.append("div").attr("class", "info-section");
             structInfo.append("h3").text("Cotree Structure");
             structInfo.append("pre").text(graph.structure);
+        }
+
+        // Screenshot capture function - saves as SVG
+        function captureScreenshot(paneType) {
+            const isGraph = paneType === 'graph';
+            const svgElement = isGraph ? document.getElementById('graph-svg') : document.getElementById('cotree-svg');
+            const gElement = isGraph ? g : cotreeG;
+
+            if (!currentGraph) {
+                alert('No graph loaded to capture');
+                return;
+            }
+
+            // Get the current transform from the g element
+            const transform = gElement.attr("transform");
+            let scale = 1, translateX = 0, translateY = 0;
+            if (transform) {
+                const scaleMatch = transform.match(/scale\(([^)]+)\)/);
+                const translateMatch = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+                if (scaleMatch) scale = parseFloat(scaleMatch[1]);
+                if (translateMatch) {
+                    translateX = parseFloat(translateMatch[1]);
+                    translateY = parseFloat(translateMatch[2]);
+                }
+            }
+
+            // Calculate bounding box of the graph content
+            let nodes;
+            if (isGraph && simulation) {
+                nodes = simulation.nodes();
+            } else if (!isGraph && cotreeSimulation) {
+                nodes = cotreeSimulation.nodes();
+            } else {
+                alert('No nodes to capture');
+                return;
+            }
+
+            if (nodes.length === 0) {
+                alert('No nodes to capture');
+                return;
+            }
+
+            // Get node radius (approximate)
+            const nodeRadius = isGraph ? 10 : 16;
+            const padding = 20; // Extra padding around content
+
+            // Calculate bounds considering node positions and sizes
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            nodes.forEach(n => {
+                const x = n.x * scale + translateX;
+                const y = n.y * scale + translateY;
+                minX = Math.min(minX, x - nodeRadius * scale);
+                minY = Math.min(minY, y - nodeRadius * scale);
+                maxX = Math.max(maxX, x + nodeRadius * scale);
+                maxY = Math.max(maxY, y + nodeRadius * scale);
+            });
+
+            // Add padding
+            minX -= padding;
+            minY -= padding;
+            maxX += padding;
+            maxY += padding;
+
+            const contentWidth = maxX - minX;
+            const contentHeight = maxY - minY;
+
+            // Clone the SVG
+            const clonedSvg = svgElement.cloneNode(true);
+
+            // Inline computed styles for all elements
+            function inlineStyles(original, clone) {
+                const originalChildren = original.children;
+                const cloneChildren = clone.children;
+
+                for (let i = 0; i < originalChildren.length; i++) {
+                    inlineStyles(originalChildren[i], cloneChildren[i]);
+                }
+
+                if (original instanceof SVGElement) {
+                    const computed = window.getComputedStyle(original);
+
+                    // Key SVG properties to inline
+                    const props = ['fill', 'stroke', 'stroke-width', 'stroke-opacity',
+                                   'font-size', 'font-weight', 'font-family',
+                                   'text-anchor', 'dominant-baseline', 'opacity'];
+
+                    props.forEach(prop => {
+                        const value = computed.getPropertyValue(prop);
+                        if (value && value !== 'none' && value !== '') {
+                            clone.style[prop] = value;
+                        }
+                    });
+                }
+            }
+
+            inlineStyles(svgElement, clonedSvg);
+
+            // Set new viewBox to crop to content bounds
+            clonedSvg.setAttribute('viewBox', `${minX} ${minY} ${contentWidth} ${contentHeight}`);
+            clonedSvg.setAttribute('width', contentWidth);
+            clonedSvg.setAttribute('height', contentHeight);
+            clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+            // Add white background as first element
+            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bg.setAttribute('x', minX);
+            bg.setAttribute('y', minY);
+            bg.setAttribute('width', contentWidth);
+            bg.setAttribute('height', contentHeight);
+            bg.setAttribute('fill', 'white');
+            clonedSvg.insertBefore(bg, clonedSvg.firstChild);
+
+            // Serialize SVG to string
+            const serializer = new XMLSerializer();
+            let svgString = serializer.serializeToString(clonedSvg);
+
+            // Add XML declaration
+            svgString = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgString;
+
+            // Generate filename
+            const graphLabel = currentGraph ? currentGraph.label.replace(/[^a-zA-Z0-9_-]/g, '_') : 'graph';
+            const filename = `${graphLabel}_${paneType}.svg`;
+
+            // Download as SVG
+            const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(link.href);
         }
     </script>
 </body>

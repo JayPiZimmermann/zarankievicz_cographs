@@ -238,26 +238,49 @@ def main():
         print(f"Error: exports directory not found: {export_dir}")
         sys.exit(1)
 
-    # Load all files and sort by s,t values from JSON content
-    all_files = list(export_dir.glob("extremal_K*.json"))
+    # Load all files - support both extremal_K*.json and extremal_profile_*.json
+    k_files = list(export_dir.glob("extremal_K*.json"))
+    profile_files = list(export_dir.glob("extremal_profile_*.json"))
+
     file_data = []
-    for filepath in all_files:
+    for filepath in k_files:
         try:
             with open(filepath) as f:
                 data = json.load(f)
-            file_data.append((data["s"], data["t"], filepath, data))
+            file_data.append(("K", data["s"], data["t"], filepath, data))
         except Exception as e:
             print(f"Error loading {filepath}: {e}", file=sys.stderr)
 
-    # Sort by (s, t) numerically
-    file_data.sort(key=lambda x: (x[0], x[1]))
-    print(f"Found {len(file_data)} K_{{s,t}} files")
+    for filepath in profile_files:
+        try:
+            with open(filepath) as f:
+                data = json.load(f)
+            # Use profile as identifier
+            profile = tuple(data.get("profile", []))
+            file_data.append(("profile", profile, 0, filepath, data))
+        except Exception as e:
+            print(f"Error loading {filepath}: {e}", file=sys.stderr)
+
+    # Sort by type then by key
+    file_data.sort(key=lambda x: (x[0], x[1], x[2]))
+    print(f"Found {len(k_files)} K_{{s,t}} files, {len(profile_files)} profile files")
 
     # Process graphs
     all_graphs = []
     graph_count = 0
 
-    for s, t, filepath, data in file_data:
+    for file_type, key1, key2, filepath, data in file_data:
+        # For K files: key1=s, key2=t
+        # For profile files: key1=profile tuple, key2=0
+        if file_type == "K":
+            s, t = key1, key2
+            id_prefix = f"K{s}_{t}"
+            label_prefix = f"K_{{{s},{t}}}-free"
+        else:
+            profile = key1
+            profile_str = ",".join(map(str, profile))
+            id_prefix = f"P_{profile_str.replace(',', '_')}"
+            label_prefix = f"Profile ({profile_str})"
         # Process each n value
         for n_str in sorted(data.get("extremal_by_n", {}).keys(), key=int):
             n = int(n_str)
@@ -330,10 +353,11 @@ def main():
 
                     # Build graph object
                     graph_obj = {
-                        'id': f"K{s}_{t}_n{n}_{struct_idx}",
-                        'label': f"K_{{{s},{t}}}-free, n={n}",
-                        's': s,
-                        't': t,
+                        'id': f"{id_prefix}_n{n}_{struct_idx}",
+                        'label': f"{label_prefix}, n={n}",
+                        's': key1 if file_type == "K" else None,
+                        't': key2 if file_type == "K" else None,
+                        'profile': list(key1) if file_type == "profile" else None,
                         'n': n,
                         'depth': graph_depth,
                         'struct_index': struct_idx,

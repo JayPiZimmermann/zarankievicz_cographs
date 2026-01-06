@@ -1,0 +1,91 @@
+{
+  "total_counterexample_graphs": 0,
+  "profiles_with_no_satisfying_graph": 0,
+  "max_n_checked": 12,
+  "by_n": {
+    "1": {
+      "total_profiles": 1,
+      "profiles_with_start_index_ge_2": 1,
+      "profiles_all_satisfy": 1,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    },
+    "2": {
+      "total_profiles": 2,
+      "profiles_with_start_index_ge_2": 1,
+      "profiles_all_satisfy": 1,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    },
+    "3": {
+      "total_profiles": 3,
+      "profiles_with_start_index_ge_2": 1,
+      "profiles_all_satisfy": 1,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    },
+    "4": {
+      "total_profiles": 6,
+      "profiles_with_start_index_ge_2": 2,
+      "profiles_all_satisfy": 2,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    },
+    "5": {
+      "total_profiles": 10,
+      "profiles_with_start_index_ge_2": 2,
+      "profiles_all_satisfy": 2,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    },
+    "6": {
+      "total_profiles": 18,
+      "profiles_with_start_index_ge_2": 4,
+      "profiles_all_satisfy": 4,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    },
+    "7": {
+      "total_profiles": 32,
+      "profiles_with_start_index_ge_2": 8,
+      "profiles_all_satisfy": 8,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    },
+    "8": {
+      "total_profiles": 57,
+      "profiles_with_start_index_ge_2": 14,
+      "profiles_all_satisfy": 14,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    },
+    "9": {
+      "total_profiles": 99,
+      "profiles_with_start_index_ge_2": 25,
+      "profiles_all_satisfy": 25,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    },
+    "10": {
+      "total_profiles": 174,
+      "profiles_with_start_index_ge_2": 42,
+      "profiles_all_satisfy": 42,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    },
+    "11": {
+      "total_profiles": 304,
+      "profiles_with_start_index_ge_2": 73,
+      "profiles_all_satisfy": 73,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    },
+    "12": {
+      "total_profiles": 524,
+      "profiles_with_start_index_ge_2": 122,
+      "profiles_all_satisfy": 122,
+      "profiles_some_satisfy": 0,
+      "profiles_none_satisfy": 0
+    }
+  }
+}

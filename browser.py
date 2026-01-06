@@ -10,6 +10,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 import webbrowser
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -33,9 +34,9 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
         elif parsed.path == "/api/current":
             self._handle_get_current()
         elif parsed.path == "/":
-            # Redirect to the viewer
+            # Redirect to the viewer with cache-busting query param
             self.send_response(302)
-            self.send_header("Location", "/extremal_viewer_d3.html")
+            self.send_header("Location", f"/extremal_viewer_d3.html?v={int(time.time())}")
             self.end_headers()
         else:
             super().do_GET()
@@ -55,8 +56,24 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
         """List available export folders."""
         folders = []
         for path in SCRIPT_DIR.iterdir():
-            if path.is_dir() and path.name.startswith("exports"):
+            if not path.is_dir():
+                continue
+
+            # Check for exports folders with extremal_K*.json files
+            if path.name.startswith("exports"):
                 json_files = list(path.glob("extremal_K*.json"))
+                if json_files:
+                    cache_file = path / "visualization_cache.json"
+                    folders.append({
+                        "name": path.name,
+                        "path": str(path.relative_to(SCRIPT_DIR)),
+                        "file_count": len(json_files),
+                        "has_cache": cache_file.exists()
+                    })
+
+            # Check for theorem_check folders with extremal_profile_*.json files
+            elif path.name.startswith("theorem_check"):
+                json_files = list(path.glob("extremal_profile_*.json"))
                 if json_files:
                     cache_file = path / "visualization_cache.json"
                     folders.append({
@@ -170,13 +187,18 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
 
     def log_message(self, format, *args):
         # Suppress routine logging
-        if "/api/" in args[0] or args[0].startswith("GET /extremal"):
-            return
+        if args and isinstance(args[0], str):
+            if "/api/" in args[0] or args[0].startswith("GET /extremal"):
+                return
         super().log_message(format, *args)
 
 
+class ReusableTCPServer(socketserver.TCPServer):
+    allow_reuse_address = True
+
+
 def main():
-    with socketserver.TCPServer(("", PORT), ViewerHandler) as httpd:
+    with ReusableTCPServer(("", PORT), ViewerHandler) as httpd:
         url = f"http://localhost:{PORT}/"
         print(f"Starting Extremal Cograph Viewer at {url}")
         print("Press Ctrl+C to stop the server")

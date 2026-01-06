@@ -8,6 +8,8 @@ venv/
 dist/
 build/
 
+literature/
+
 # Cache and checkpoints
 cache/
 exports_withDuplicates/

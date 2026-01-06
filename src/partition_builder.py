@@ -543,3 +543,246 @@ def check_conjecture_partition(
     """
     from .fast_builder import check_conjecture_fast
     return check_conjecture_fast(registry, s_min, s_max, t_max)
+
+
+def _collect_product_component_sizes(
+    registry: FastRegistry,
+    n: int,
+    profile_hash: int,
+    graph_idx: int
+) -> list[int]:
+    """
+    Collect all leaf component sizes from a flattened product tree.
+
+    For P(a, P(b, c)) this returns sizes of [a, b, c] (flattened).
+    For P(a, S(...)) this returns [size(a), size(S(...))].
+    """
+    graph = registry._graphs[n][profile_hash][graph_idx]
+
+    if graph.op == "v":
+        return [1]
+
+    if graph.op == "s":
+        # Sum node - return total size as single component
+        return [n]
+
+    # Product node - recursively collect from children
+    result = []
+
+    # Child 1
+    child1_graph = registry._graphs[graph.child1_n][graph.child1_profile_hash][graph.child1_idx]
+    if child1_graph.op == "p":
+        # Flatten nested products
+        result.extend(_collect_product_component_sizes(
+            registry, graph.child1_n, graph.child1_profile_hash, graph.child1_idx
+        ))
+    else:
+        # Sum or vertex - don't flatten further
+        result.append(graph.child1_n)
+
+    # Child 2
+    child2_graph = registry._graphs[graph.child2_n][graph.child2_profile_hash][graph.child2_idx]
+    if child2_graph.op == "p":
+        # Flatten nested products
+        result.extend(_collect_product_component_sizes(
+            registry, graph.child2_n, graph.child2_profile_hash, graph.child2_idx
+        ))
+    else:
+        # Sum or vertex - don't flatten further
+        result.append(graph.child2_n)
+
+    return result
+
+
+def _can_partition_to_sum(sizes: list[int], target: int) -> bool:
+    """
+    Check if a subset of sizes can sum to exactly target.
+
+    Uses dynamic programming subset sum.
+    """
+    if target == 0:
+        return True
+    if not sizes or target < 0:
+        return False
+
+    total = sum(sizes)
+    if target > total:
+        return False
+
+    # DP: dp[i] = True if sum i is achievable
+    dp = [False] * (target + 1)
+    dp[0] = True
+
+    for size in sizes:
+        # Iterate backwards to avoid using same element twice
+        for i in range(target, size - 1, -1):
+            if dp[i - size]:
+                dp[i] = True
+
+    return dp[target]
+
+
+def _get_start_index(profile: np.ndarray) -> int:
+    """
+    Get the start index of a biclique-profile.
+
+    Start index is the minimal i >= 1 such that profile[i] is "constrained",
+    meaning it's less than what an unconstrained graph could have.
+
+    For a complete graph K_n:
+    - profile[i] = n - i (the max t such that K_{i,t} is contained)
+
+    So start index is the first i where profile[i] < n - i.
+    """
+    n = int(profile[0])
+    for i in range(1, len(profile)):
+        # For complete graph on n vertices, K_{i, n-i} is contained
+        # If profile[i] < n - i, this position is constrained
+        expected_unconstrained = n - i if i < n else 0
+        if i < len(profile) and profile[i] < expected_unconstrained:
+            return i
+    return len(profile)  # No constraint found (complete graph)
+
+
+def check_theorem(
+    registry: FastRegistry,
+    s_max: int = 7,
+    t_max: int = 7,
+    small_n_threshold: int = 10
+) -> dict:
+    """
+    Check the main theorem (Theorem 4):
+    For biclique-profile P with start index s >= 2, extremal graphs are
+    P(G_1, G_2) where the multiplication components can be partitioned
+    such that one subset sums to s-1.
+
+    This checks ACTUAL PROFILES from the registry, not just K_{s,t} pairs.
+
+    Args:
+        registry: FastRegistry with computed data
+        s_max: Maximum s to check (for filtering profiles)
+        t_max: Maximum t to check (unused, kept for compatibility)
+        small_n_threshold: For n <= this, include full extremal graph structures
+
+    Returns:
+        Dictionary keyed by n, containing:
+        - counterexamples: list of violations with info about other graphs
+        - profiles: dict by profile_hash showing all extremal graphs
+        - summary: statistics for this n
+    """
+    results = {}
+
+    for n in range(1, registry.max_n() + 1):
+        n_result = {
+            "counterexamples": [],
+            "profiles": {},
+            "summary": {
+                "total_profiles": 0,
+                "profiles_with_start_index_ge_2": 0,
+                "profiles_all_satisfy": 0,
+                "profiles_some_satisfy": 0,
+                "profiles_none_satisfy": 0
+            }
+        }
+
+        # Iterate through ALL profiles for this n
+        for profile_hash, profile in registry._profiles[n].items():
+            n_result["summary"]["total_profiles"] += 1
+
+            start_index = _get_start_index(profile)
+
+            # Only check profiles with start index >= 2
+            if start_index < 2 or start_index > s_max:
+                continue
+
+            n_result["summary"]["profiles_with_start_index_ge_2"] += 1
+
+            graphs = registry._graphs[n].get(profile_hash, [])
+            if not graphs:
+                continue
+
+            expected_sum = start_index - 1  # s - 1
+
+            profile_info = {
+                "profile": profile.tolist(),
+                "profile_hash": profile_hash,
+                "start_index": start_index,
+                "n": n,
+                "edge_count": graphs[0].edges,
+                "graph_count": len(graphs),
+                "graphs_satisfying": [],
+                "graphs_not_satisfying": [],
+                "has_satisfying_graph": False
+            }
+
+            for idx, graph in enumerate(graphs):
+                struct_str = registry.reconstruct_structure(n, profile_hash, idx)
+
+                # Get flattened product component sizes
+                component_sizes = _collect_product_component_sizes(
+                    registry, n, profile_hash, idx
+                )
+
+                graph_info = {
+                    "structure": struct_str,
+                    "edges": graph.edges,
+                    "depth": graph.depth,
+                    "last_op": "product" if graph.op == "p" else ("sum" if graph.op == "s" else "vertex"),
+                    "immediate_components": [graph.child1_n, graph.child2_n] if graph.op != "v" else [],
+                    "flattened_components": component_sizes,
+                    "satisfies_theorem": False,
+                    "reason": ""
+                }
+
+                # Check theorem conditions
+                if graph.op == "v":
+                    graph_info["satisfies_theorem"] = True
+                    graph_info["reason"] = "single vertex"
+                elif graph.op == "s":
+                    graph_info["satisfies_theorem"] = False
+                    graph_info["reason"] = "disconnected (sum at root)"
+                elif graph.op == "p":
+                    if _can_partition_to_sum(component_sizes, expected_sum):
+                        graph_info["satisfies_theorem"] = True
+                        graph_info["reason"] = f"components {component_sizes} partition with sum {expected_sum}"
+                    else:
+                        graph_info["satisfies_theorem"] = False
+                        graph_info["reason"] = f"components {component_sizes} cannot partition with sum {expected_sum}"
+
+                if graph_info["satisfies_theorem"]:
+                    profile_info["graphs_satisfying"].append(graph_info)
+                    profile_info["has_satisfying_graph"] = True
+                else:
+                    profile_info["graphs_not_satisfying"].append(graph_info)
+
+            # Classify this profile
+            if len(profile_info["graphs_not_satisfying"]) == 0:
+                n_result["summary"]["profiles_all_satisfy"] += 1
+            elif profile_info["has_satisfying_graph"]:
+                n_result["summary"]["profiles_some_satisfy"] += 1
+            else:
+                n_result["summary"]["profiles_none_satisfy"] += 1
+
+            # Add counterexamples with context
+            for g in profile_info["graphs_not_satisfying"]:
+                n_result["counterexamples"].append({
+                    "profile": profile.tolist(),
+                    "start_index": start_index,
+                    "expected_partition_sum": expected_sum,
+                    "structure": g["structure"],
+                    "flattened_components": g["flattened_components"],
+                    "reason": g["reason"],
+                    "has_other_satisfying_graph": profile_info["has_satisfying_graph"],
+                    "satisfying_alternatives": [
+                        alt["structure"] for alt in profile_info["graphs_satisfying"]
+                    ] if profile_info["has_satisfying_graph"] else []
+                })
+
+            # Store full profile info for all n
+            # Add formatted profile with infinity
+            profile_info["profile_display"] = ["∞"] + profile.tolist()[1:]
+            n_result["profiles"][str(profile_hash)] = profile_info
+
+        results[n] = n_result
+
+    return results
