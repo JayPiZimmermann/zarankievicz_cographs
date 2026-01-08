@@ -1,1 +1,2 @@
 exports*/*.json filter=lfs diff=lfs merge=lfs -text
+browser_d3_cache/** filter=lfs diff=lfs merge=lfs -text

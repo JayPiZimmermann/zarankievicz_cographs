@@ -1,0 +1,38 @@
+# Ignore everything by default
+*
+
+# Only include what we need
+!extremal_viewer_d3.html
+!deploy/browser_fly.py
+!browser_d3_cache/
+
+# Exclude Python cache
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Exclude git
+.git/
+.gitignore
+.gitattributes
+
+# Exclude development files
+*.md
+.claude/
+src/
+analysis/
+tex/
+literature/
+regular_cographs/
+
+# Exclude large data files (not needed for deployment)
+exports_*/
+*.json
+!browser_d3_cache/*.json
+
+# Exclude other scripts
+main.py
+generate_*.py
+browser.py
+theorem_viewer.html

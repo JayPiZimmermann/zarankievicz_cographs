@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extremal Cograph Viewer - D3.js</title>
+    <title>Extremal Cograph Viewer</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         * {
@@ -20,7 +20,7 @@
 
         #app {
             display: grid;
-            grid-template-columns: 280px 1fr 320px;
+            grid-template-columns: 280px 1fr;
             grid-template-rows: 60px 1fr;
             height: 100vh;
             gap: 0;
@@ -34,38 +34,12 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
         }
 
         #header h1 {
             font-size: 24px;
             font-weight: 600;
-        }
-
-        #header .stats {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        #header .folder-selector {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        #header .folder-selector select {
-            padding: 6px 12px;
-            border-radius: 5px;
-            border: none;
-            font-size: 13px;
-            background: rgba(255,255,255,0.9);
-            cursor: pointer;
-            min-width: 180px;
-        }
-
-        #header .folder-selector select:disabled {
-            opacity: 0.7;
-            cursor: wait;
         }
 
         .loading-overlay {
@@ -104,28 +78,6 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
-        }
-
-        .no-folder-message {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #6c757d;
-            text-align: center;
-            padding: 40px;
-        }
-
-        .no-folder-message h3 {
-            font-size: 20px;
-            margin-bottom: 10px;
-            color: #495057;
-        }
-
-        .no-folder-message p {
-            font-size: 14px;
-            max-width: 300px;
         }
 
         #sidebar {
@@ -202,11 +154,26 @@
 
         .pane-label {
             position: absolute;
-            top: 5px;
-            left: 10px;
-            font-size: 11px;
-            color: #999;
+            top: 8px;
+            left: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
             z-index: 5;
+        }
+
+        .pane-save-btn {
+            position: absolute;
+            top: 6px;
+            left: 75px;
+            font-size: 14px;
+            padding: 2px 10px;
+            z-index: 5;
+            background: #6c757d;
+        }
+
+        .pane-save-btn:hover:not(:disabled) {
+            background: #5a6268;
         }
 
         .cotree-node-label {
@@ -219,13 +186,6 @@
             dominant-baseline: central;
         }
 
-        #info-panel {
-            background: white;
-            border-left: 1px solid #dee2e6;
-            overflow-y: auto;
-            padding: 20px;
-        }
-
         h2 {
             font-size: 16px;
             font-weight: 600;
@@ -235,45 +195,166 @@
             border-bottom: 2px solid #667eea;
         }
 
-        .filter-group {
-            margin-bottom: 20px;
+        /* Parameter selector styling */
+        .param-section {
+            margin-bottom: 25px;
         }
 
-        .filter-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: #555;
-            margin-bottom: 6px;
+        .param-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
         }
 
-        .filter-group select,
-        .filter-group input {
-            width: 100%;
-            padding: 8px 10px;
-            border: 1px solid #ced4da;
-            border-radius: 5px;
-            font-size: 13px;
-            background: white;
-        }
-
-        .filter-group input[type="checkbox"] {
-            width: auto;
-            margin-right: 8px;
-        }
-
-        .checkbox-label {
+        .graph-selector-row {
             display: flex;
             align-items: center;
-            cursor: pointer;
-            padding: 8px 0;
+            justify-content: center;
+            gap: 10px;
         }
 
-        .button-group {
+        .graph-counter {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .arrow-btn.left,
+        .arrow-btn.right {
+            width: 32px;
+            height: 32px;
+            border-radius: 5px;
+        }
+
+        .param-group {
             display: flex;
-            gap: 8px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: center;
+            flex: 0;
+            padding: 0 2px;
+        }
+
+        .param-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .param-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .arrow-btn {
+            width: 40px;
+            height: 20px;
+            background: #667eea;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .arrow-btn:hover:not(:disabled) {
+            background: #5568d3;
+        }
+
+        .arrow-btn:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+
+        .arrow-btn.up {
+            border-radius: 5px 5px 0 0;
+        }
+
+        .arrow-btn.down {
+            border-radius: 0 0 5px 5px;
+        }
+
+        .arrow-btn svg {
+            width: 12px;
+            height: 12px;
+            fill: white;
+        }
+
+        .param-input {
+            width: 40px;
+            height: 32px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid #ced4da;
+            border-radius: 0;
+            outline: none;
+            -moz-appearance: textfield;
+        }
+
+        .param-input::-webkit-outer-spin-button,
+        .param-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .param-input:focus {
+            border-color: #667eea;
+        }
+
+        /* Graph info section */
+        .info-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .info-section h3 {
+            font-size: 13px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 12px;
+            border-bottom: 1px solid #f1f3f5;
+        }
+
+        .info-label {
+            color: #6c757d;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+
+        /* Controls panel */
+        .controls-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+
+        .control-item {
+            margin-bottom: 10px;
+        }
+
+        .control-item:last-child {
+            margin-bottom: 0;
         }
 
         button {
@@ -296,50 +377,44 @@
             background: #6c757d;
         }
 
-        button.secondary:hover {
+        button.secondary:hover:not(:disabled) {
             background: #5a6268;
         }
 
-        #graph-list {
-            margin-top: 15px;
+        button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
-        .graph-item {
-            padding: 12px;
-            margin-bottom: 8px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.2s;
+        .slider-group {
+            margin: 10px 0;
         }
 
-        .graph-item:hover {
-            background: #e9ecef;
-            transform: translateX(2px);
-        }
-
-        .graph-item.active {
-            background: #e7f1ff;
-            border-color: #667eea;
-        }
-
-        .graph-label {
-            font-weight: 600;
-            color: #495057;
-            font-size: 13px;
-            margin-bottom: 4px;
-        }
-
-        .graph-meta {
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
             font-size: 11px;
-            color: #6c757d;
+            color: #555;
+            margin-bottom: 3px;
         }
 
+        input[type="range"] {
+            width: 100%;
+        }
 
         svg {
             width: 100%;
             height: 100%;
+            display: block;
+        }
+
+        #graph-svg, #cotree-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }
 
         .node {
@@ -371,77 +446,22 @@
             user-select: none;
         }
 
-        .slider-group {
-            margin: 15px 0;
-        }
-
-        .slider-group label {
+        .checkbox-row {
             display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            color: #555;
-            margin-bottom: 5px;
-        }
-
-        input[type="range"] {
-            width: 100%;
-        }
-
-        .info-section {
-            margin-bottom: 20px;
-        }
-
-        .info-section h3 {
-            font-size: 14px;
-            color: #667eea;
+            align-items: center;
+            gap: 8px;
             margin-bottom: 8px;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid #e9ecef;
             font-size: 13px;
         }
 
-        .info-label {
-            font-weight: 500;
-            color: #6c757d;
+        .checkbox-row input {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
         }
 
-        .info-value {
-            font-weight: 600;
-            color: #333;
-        }
-
-        pre {
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 5px;
-            font-size: 11px;
-            overflow-x: auto;
-            border: 1px solid #dee2e6;
-            max-height: 200px;
-        }
-
-        .controls-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            z-index: 10;
-        }
-
-        .control-item {
-            margin-bottom: 10px;
-        }
-
-        .control-item:last-child {
-            margin-bottom: 0;
+        .checkbox-row label {
+            cursor: pointer;
         }
     </style>
 </head>
@@ -449,23 +469,9 @@
     <div id="app">
         <div id="header">
             <h1>Extremal Cograph Viewer</h1>
-            <div class="folder-selector">
-                <label style="font-size: 13px;">Exports folder:</label>
-                <select id="folder-select">
-                    <option value="">-- Select folder --</option>
-                </select>
-                <label style="font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                    <input type="checkbox" id="force-recalculate" style="cursor: pointer;">
-                    Recalculate
-                </label>
-            </div>
-            <div class="stats">
-                <span id="total-graphs">0</span> graphs loaded
-                | <span id="current-graph-label">Select a graph</span>
-            </div>
         </div>
 
-        <div id="loading-overlay" class="loading-overlay hidden">
+        <div id="loading-overlay" class="loading-overlay">
             <div class="loading-box">
                 <div class="spinner"></div>
                 <div>Loading graphs...</div>
@@ -473,231 +479,1208 @@
         </div>
 
         <div id="sidebar">
-            <h2>Filters</h2>
+            <p style="font-size: 13px; color: #333; margin: 0 0 15px 0; line-height: 1.5;">
+                This website presents extremal K<sub>s,t</sub>-free cographs on n vertices, computed via dynamic programming on the lattice of biclique-profiles.
+            </p>
 
-            <div class="filter-group">
-                <label for="filter-st" id="filter-st-label">Filter by K_{s,t}:</label>
-                <select id="filter-st">
-                    <option value="">All</option>
-                </select>
+            <div class="param-section">
+                <div class="param-row" style="justify-content: center; gap: 0px;">
+                    <div class="param-group">
+                        <span class="param-label">s</span>
+                        <div class="param-control">
+                            <button class="arrow-btn up" id="s-up" onclick="changeParam('s', 1)">
+                                <svg viewBox="0 0 24 24"><path d="M12 8l-6 6h12z"/></svg>
+                            </button>
+                            <input type="number" class="param-input" id="s-input" value="2" min="1">
+                            <button class="arrow-btn down" id="s-down" onclick="changeParam('s', -1)">
+                                <svg viewBox="0 0 24 24"><path d="M12 16l6-6H6z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="param-group">
+                        <span class="param-label">t</span>
+                        <div class="param-control">
+                            <button class="arrow-btn up" id="t-up" onclick="changeParam('t', 1)">
+                                <svg viewBox="0 0 24 24"><path d="M12 8l-6 6h12z"/></svg>
+                            </button>
+                            <input type="number" class="param-input" id="t-input" value="3" min="1">
+                            <button class="arrow-btn down" id="t-down" onclick="changeParam('t', -1)">
+                                <svg viewBox="0 0 24 24"><path d="M12 16l6-6H6z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="param-group">
+                        <span class="param-label">n</span>
+                        <div class="param-control">
+                            <button class="arrow-btn up" id="n-up" onclick="changeParam('n', 1)">
+                                <svg viewBox="0 0 24 24"><path d="M12 8l-6 6h12z"/></svg>
+                            </button>
+                            <input type="number" class="param-input" id="n-input" value="16" min="1">
+                            <button class="arrow-btn down" id="n-down" onclick="changeParam('n', -1)">
+                                <svg viewBox="0 0 24 24"><path d="M12 16l6-6H6z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="graph-selector-row" id="graph-selector" style="display: none;">
+                    <button class="arrow-btn left" id="m-down" onclick="cycleGraph(-1)">
+                        <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6z"/></svg>
+                    </button>
+                    <span class="graph-counter" id="m-display">1 / 1</span>
+                    <button class="arrow-btn right" id="m-up" onclick="cycleGraph(1)">
+                        <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6z"/></svg>
+                    </button>
+                </div>
             </div>
 
-            <div class="filter-group">
-                <label for="filter-n">Filter by n:</label>
-                <select id="filter-n">
-                    <option value="">All</option>
-                </select>
+            <div class="info-section" id="graph-info">
+                <h3 id="info-header">Cograph information</h3>
+                <div id="info-content">
+                    <p style="color: #6c757d; font-size: 12px;">No graph selected</p>
+                </div>
+                <div id="completeness-info" style="margin-top: 10px; font-size: 13px; color: #6c757d; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                </div>
             </div>
-
-            <div class="button-group">
-                <button onclick="resetFilters()">Reset Filters</button>
-            </div>
-
-            <h2 style="margin-top: 20px;">Graphs</h2>
-            <div id="graph-list"></div>
         </div>
 
         <div id="main">
             <div class="controls-panel">
-                <!-- Pane visibility controls -->
-                <div class="control-item" style="margin-bottom: 15px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; margin-bottom: 10px;">
-                        <input type="checkbox" id="show-graph" checked style="width: 18px; height: 18px; cursor: pointer;"> Graph
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
-                        <input type="checkbox" id="show-cotree" checked style="width: 18px; height: 18px; cursor: pointer;"> Cotree
-                    </label>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="show-graph" checked>
+                    <label for="show-graph">Graph</label>
+                </div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="show-cotree" checked>
+                    <label for="show-cotree">Cotree</label>
+                </div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="cotree-hierarchical">
+                    <label for="cotree-hierarchical">Hierarchical</label>
                 </div>
 
-                <div class="control-item">
-                    <button onclick="togglePhysics()" id="physics-toggle">Freeze Physics</button>
+                <div class="control-item" style="margin-top: 15px;">
+                    <button onclick="togglePhysics()" id="physics-toggle">Freeze</button>
                 </div>
                 <div class="control-item">
-                    <button onclick="toggleLabels()" class="secondary">Toggle Labels</button>
-                </div>
-                <div class="control-item">
-                    <button onclick="resetPositions()" class="secondary">Reset Layout</button>
-                </div>
-                <div class="control-item">
-                    <button onclick="captureScreenshot('graph')">Save Graph SVG</button>
-                </div>
-                <div class="control-item">
-                    <button onclick="captureScreenshot('cotree')">Save Cotree SVG</button>
+                    <button onclick="resetPositions()" class="secondary">Reset</button>
                 </div>
 
-                <!-- Graph sliders -->
-                <div id="graph-sliders">
-                    <div style="font-size: 11px; color: #667eea; font-weight: 600; margin: 10px 0 5px; border-top: 1px solid #dee2e6; padding-top: 10px;">Graph</div>
-                    <div class="slider-group">
-                        <label>
-                            <span>Boundary</span>
-                            <span id="graph-boundary-val">20</span>
-                        </label>
-                        <input type="range" id="graph-boundary" min="0" max="200" step="5" value="20">
-                    </div>
-                    <div class="slider-group">
-                        <label>
-                            <span>Link Strength</span>
-                            <span id="graph-link-strength-val">30</span>
-                        </label>
-                        <input type="range" id="graph-link-strength" min="-100" max="100" step="1" value="30">
-                    </div>
-                    <div class="slider-group">
-                        <label>
-                            <span>Charge Force</span>
-                            <span id="graph-charge-strength-val">-30</span>
-                        </label>
-                        <input type="range" id="graph-charge-strength" min="-100" max="100" step="1" value="-30">
-                    </div>
-                    <div class="slider-group">
-                        <label>
-                            <span>Sum Force</span>
-                            <span id="graph-sum-force-val">0</span>
-                        </label>
-                        <input type="range" id="graph-sum-force" min="-100" max="100" step="1" value="0">
-                    </div>
-                    <div class="slider-group">
-                        <label>
-                            <span>Product Force</span>
-                            <span id="graph-product-force-val">0</span>
-                        </label>
-                        <input type="range" id="graph-product-force" min="-100" max="100" step="1" value="0">
-                    </div>
-                </div>
-
-                <!-- Cotree sliders -->
-                <div id="cotree-sliders">
-                    <div style="font-size: 11px; color: #667eea; font-weight: 600; margin: 10px 0 5px; border-top: 1px solid #dee2e6; padding-top: 10px;">Cotree</div>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; margin-bottom: 10px;">
-                        <input type="checkbox" id="cotree-hierarchical" style="width: 16px; height: 16px; cursor: pointer;"> Hierarchical
-                    </label>
-                    <div class="slider-group">
-                        <label>
-                            <span>Boundary</span>
-                            <span id="cotree-boundary-val">20</span>
-                        </label>
-                        <input type="range" id="cotree-boundary" min="0" max="200" step="5" value="20">
-                    </div>
-                    <div class="slider-group">
-                        <label>
-                            <span>Link Strength</span>
-                            <span id="cotree-link-strength-val">30</span>
-                        </label>
-                        <input type="range" id="cotree-link-strength" min="-100" max="100" step="1" value="30">
-                    </div>
-                    <div class="slider-group">
-                        <label>
-                            <span>Charge Force</span>
-                            <span id="cotree-charge-strength-val">-30</span>
-                        </label>
-                        <input type="range" id="cotree-charge-strength" min="-100" max="100" step="1" value="-30">
-                    </div>
-                </div>
+                <!-- Hidden inputs with default values (scaled for 1600x1200 canvas) -->
+                <!-- Using type="hidden" instead of range to preserve negative values -->
+                <input type="hidden" id="product-strength" value="9">
+                <input type="hidden" id="sum-strength" value="-150">
+                <input type="hidden" id="orbit-dist" value="220">
+                <input type="hidden" id="orbit-pull" value="20">
+                <input type="hidden" id="center-pull" value="60">
+                <input type="hidden" id="comp-repel" value="500">
             </div>
+
             <div class="split-container">
                 <div id="graph-pane" class="split-pane">
                     <div class="pane-label">Graph</div>
+                    <button onclick="saveCographCSV()" id="save-cograph-btn" class="pane-save-btn">Save CSV</button>
                     <svg id="graph-svg"></svg>
                 </div>
                 <div id="split-divider" class="split-divider"></div>
                 <div id="cotree-pane" class="split-pane">
                     <div class="pane-label">Cotree</div>
+                    <button onclick="saveCotreeCSV()" id="save-cotree-btn" class="pane-save-btn">Save CSV</button>
                     <svg id="cotree-svg"></svg>
                 </div>
-            </div>
-        </div>
-
-        <div id="info-panel">
-            <h2>Graph Information</h2>
-            <div id="info-content">
-                <p style="color: #6c757d; font-size: 13px;">Select a graph from the list to view details</p>
             </div>
         </div>
     </div>
 
     <script>
-        let allGraphs = [];
-        let filteredGraphs = [];
+        // Global state
+        let paramIndex = [];  // Array of [s, t] pairs from index
+        let loadedParams = {};  // Cache: {`${s}_${t}`: {n: [graphs]}}
         let currentGraph = null;
         let simulation = null;
         let cotreeSimulation = null;
         let physicsEnabled = true;
         let showLabels = false;
-        let currentFolder = null;
-        let graphBoundary = 20;
-        let cotreeBoundary = 20;
         let cotreeHierarchical = false;
+        let cographView = false;
+
+        // Current parameters
+        let currentS = 2;
+        let currentT = 3;
+        let currentN = 5;
+        let currentM = 1;
+
+        // Available values for each param
+        let availableS = [];
+        let availableT = {};  // {s: [t values]}
+        let availableN = {};  // {s: {t: [n values]}}
+
+        const BOUNDARY = 200;
+
+        // Fixed SVG coordinate system - large size, no scaling
+        const GRAPH_WIDTH = 1600;
+        const GRAPH_HEIGHT = 1200;
 
         // Graph SVG setup
         const svg = d3.select("#graph-svg");
         const graphPane = document.getElementById("graph-pane");
-        let width = graphPane.clientWidth || 800;
-        let height = graphPane.clientHeight || 400;
+        let width = GRAPH_WIDTH;
+        let height = GRAPH_HEIGHT;
 
-        svg.attr("viewBox", [0, 0, width, height]);
+        svg.attr("viewBox", [0, 0, GRAPH_WIDTH, GRAPH_HEIGHT])
+           .attr("preserveAspectRatio", "xMidYMid slice");
 
         const g = svg.append("g");
         const linkGroup = g.append("g").attr("class", "links");
         const nodeGroup = g.append("g").attr("class", "nodes");
         const labelGroup = g.append("g").attr("class", "labels");
 
-        // Graph zoom
         const zoom = d3.zoom()
             .scaleExtent([0.1, 10])
-            .on("zoom", (event) => {
-                g.attr("transform", event.transform);
-            });
+            .on("zoom", (event) => g.attr("transform", event.transform));
         svg.call(zoom);
+
+        // Fixed cotree coordinate system - large size, no scaling
+        const COTREE_WIDTH = 1600;
+        const COTREE_HEIGHT = 1200;
 
         // Cotree SVG setup
         const cotreeSvg = d3.select("#cotree-svg");
         const cotreePane = document.getElementById("cotree-pane");
-        let cotreeWidth = cotreePane.clientWidth || 800;
-        let cotreeHeight = cotreePane.clientHeight || 400;
+        let cotreeWidth = COTREE_WIDTH;
+        let cotreeHeight = COTREE_HEIGHT;
 
-        cotreeSvg.attr("viewBox", [0, 0, cotreeWidth, cotreeHeight]);
+        cotreeSvg.attr("viewBox", [0, 0, COTREE_WIDTH, COTREE_HEIGHT])
+                 .attr("preserveAspectRatio", "xMidYMid slice");
 
         const cotreeG = cotreeSvg.append("g");
         const cotreeLinkGroup = cotreeG.append("g").attr("class", "cotree-links");
         const cotreeNodeGroup = cotreeG.append("g").attr("class", "cotree-nodes");
         const cotreeLabelGroup = cotreeG.append("g").attr("class", "cotree-labels");
 
-        // Cotree zoom
         const cotreeZoom = d3.zoom()
             .scaleExtent([0.1, 10])
-            .on("zoom", (event) => {
-                cotreeG.attr("transform", event.transform);
-            });
+            .on("zoom", (event) => cotreeG.attr("transform", event.transform));
         cotreeSvg.call(cotreeZoom);
 
-        // Pane visibility toggles
+        // Build available params from index
+        function buildAvailableParams() {
+            availableS = [];
+            availableT = {};
+
+            const sSet = new Set();
+
+            paramIndex.forEach(([s, t]) => {
+                sSet.add(s);
+                if (!availableT[s]) availableT[s] = new Set();
+                availableT[s].add(t);
+            });
+
+            availableS = Array.from(sSet).sort((a, b) => a - b);
+
+            // Convert sets to sorted arrays
+            for (const s in availableT) {
+                availableT[s] = Array.from(availableT[s]).sort((a, b) => a - b);
+            }
+        }
+
+        // Load data for specific s,t parameters
+        async function loadParamData(s, t) {
+            const key = `${s}_${t}`;
+            console.log("loadParamData called:", { s, t, key, alreadyLoaded: !!loadedParams[key] });
+            if (loadedParams[key]) {
+                return loadedParams[key];
+            }
+
+            try {
+                const response = await fetch(`/api/params?s=${s}&t=${t}`);
+                console.log("loadParamData response:", { s, t, ok: response.ok, status: response.status });
+                if (!response.ok) return null;
+                const data = await response.json();
+                console.log("loadParamData loaded:", { s, t, nValues: Object.keys(data), sampleGraph: data[Object.keys(data)[0]]?.[0] });
+                loadedParams[key] = data;
+
+                // Update availableN for this s,t
+                if (!availableN[s]) availableN[s] = {};
+                availableN[s][t] = Object.keys(data).map(n => parseInt(n)).sort((a, b) => a - b);
+
+                return data;
+            } catch (error) {
+                console.error(`Failed to load params ${s},${t}:`, error);
+                return null;
+            }
+        }
+
+        // Get graphs for current parameters (from loaded cache)
+        function getGraphsForParams(s, t, n) {
+            const key = `${s}_${t}`;
+            const data = loadedParams[key];
+            console.log("getGraphsForParams:", { s, t, n, key, hasData: !!data, loadedKeys: Object.keys(loadedParams) });
+            if (!data) return [];
+            const nData = data[String(n)];
+            console.log("getGraphsForParams nData:", { n, hasNData: !!nData, graphCount: nData?.length, firstGraph: nData?.[0] });
+            if (!nData) return [];
+            return nData;
+        }
+
+        // Find nearest valid parameter value
+        function findNearestValid(arr, val) {
+            if (!arr || arr.length === 0) return null;
+            if (arr.includes(val)) return val;
+
+            // Find closest
+            let closest = arr[0];
+            let minDiff = Math.abs(arr[0] - val);
+            for (const v of arr) {
+                const diff = Math.abs(v - val);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = v;
+                }
+            }
+            return closest;
+        }
+
+        // Check if parameter can be incremented/decremented
+        function canChangeParam(param, delta) {
+            const arr = getAvailableValues(param);
+            if (!arr || arr.length === 0) return false;
+
+            const currentVal = getCurrentParamValue(param);
+            const idx = arr.indexOf(currentVal);
+            if (idx === -1) return false;
+
+            const newIdx = idx + delta;
+            return newIdx >= 0 && newIdx < arr.length;
+        }
+
+        function getAvailableValues(param) {
+            switch (param) {
+                case 's': return availableS;
+                case 't': return availableT[currentS] || [];
+                case 'n': return (availableN[currentS] && availableN[currentS][currentT]) || [];
+                case 'm':
+                    const graphs = getGraphsForParams(currentS, currentT, currentN);
+                    return graphs.length > 0 ? Array.from({length: graphs.length}, (_, i) => i + 1) : [];
+                default: return [];
+            }
+        }
+
+        function getCurrentParamValue(param) {
+            switch (param) {
+                case 's': return currentS;
+                case 't': return currentT;
+                case 'n': return currentN;
+                case 'm': return currentM;
+                default: return 0;
+            }
+        }
+
+        // Update arrow button states
+        function updateArrowStates() {
+            ['s', 't', 'n'].forEach(param => {
+                const upBtn = document.getElementById(`${param}-up`);
+                const downBtn = document.getElementById(`${param}-down`);
+
+                upBtn.disabled = !canChangeParam(param, 1);
+                downBtn.disabled = !canChangeParam(param, -1);
+            });
+        }
+
+        // Cycle through graphs with wrap-around
+        function cycleGraph(delta) {
+            const graphs = getGraphsForParams(currentS, currentT, currentN);
+            if (graphs.length === 0) return;
+
+            currentM = currentM + delta;
+            if (currentM > graphs.length) currentM = 1;
+            if (currentM < 1) currentM = graphs.length;
+
+            updateInputs();
+            loadCurrentGraph();
+        }
+
+        // Change parameter value
+        function changeParam(param, delta) {
+            const arr = getAvailableValues(param);
+            if (!arr || arr.length === 0) return;
+
+            const currentVal = getCurrentParamValue(param);
+            const idx = arr.indexOf(currentVal);
+            if (idx === -1) return;
+
+            const newIdx = idx + delta;
+            if (newIdx < 0 || newIdx >= arr.length) return;
+
+            const newVal = arr[newIdx];
+            setParam(param, newVal);
+        }
+
+        // Set parameter directly (async to handle data loading)
+        async function setParam(param, value) {
+            console.log("setParam called:", { param, value, currentS, currentT, currentN });
+            switch (param) {
+                case 's':
+                    currentS = value;
+                    // Reset t to valid value for new s
+                    const tVals = availableT[currentS] || [];
+                    console.log("setParam s: available t values:", tVals);
+                    currentT = findNearestValid(tVals, currentT) || tVals[0] || currentT;
+                    console.log("setParam s: new t value:", currentT);
+                    // Load data for new s,t if needed
+                    await loadParamData(currentS, currentT);
+                    // Reset n to valid value for new s,t
+                    const nVals = (availableN[currentS] && availableN[currentS][currentT]) || [];
+                    console.log("setParam s: available n values:", nVals.slice(0, 10));
+                    currentN = findNearestValid(nVals, currentN) || nVals[0] || currentN;
+                    console.log("setParam s: new n value:", currentN);
+                    currentM = 1;
+                    break;
+                case 't':
+                    currentT = value;
+                    // Load data for new s,t if needed
+                    await loadParamData(currentS, currentT);
+                    // Reset n to valid value for new t
+                    const nVals2 = (availableN[currentS] && availableN[currentS][currentT]) || [];
+                    currentN = findNearestValid(nVals2, currentN) || nVals2[0] || currentN;
+                    currentM = 1;
+                    break;
+                case 'n':
+                    currentN = value;
+                    currentM = 1;
+                    break;
+                case 'm':
+                    currentM = value;
+                    break;
+            }
+
+            updateInputs();
+            updateArrowStates();
+            loadCurrentGraph();
+        }
+
+        // Handle input change
+        function handleInputChange(param) {
+            const input = document.getElementById(`${param}-input`);
+            const value = parseInt(input.value);
+
+            if (isNaN(value)) {
+                updateInputs();
+                return;
+            }
+
+            const arr = getAvailableValues(param);
+            if (!arr || arr.length === 0) {
+                updateInputs();
+                return;
+            }
+
+            // Find nearest valid value
+            const validValue = findNearestValid(arr, value);
+            if (validValue !== null) {
+                setParam(param, validValue);
+            } else {
+                updateInputs();
+            }
+        }
+
+        // Update input displays
+        function updateInputs() {
+            document.getElementById('s-input').value = currentS;
+            document.getElementById('t-input').value = currentT;
+            document.getElementById('n-input').value = currentN;
+
+            // Update graph counter and visibility
+            const graphs = getGraphsForParams(currentS, currentT, currentN);
+            const totalGraphs = graphs.length || 1;
+            document.getElementById('m-display').textContent = `${currentM} / ${totalGraphs}`;
+            document.getElementById('graph-selector').style.display = totalGraphs >= 2 ? 'flex' : 'none';
+        }
+
+        // Load and display current graph
+        function loadCurrentGraph() {
+            const graphs = getGraphsForParams(currentS, currentT, currentN);
+            console.log("loadCurrentGraph:", { s: currentS, t: currentT, n: currentN, graphCount: graphs.length });
+
+            if (graphs.length === 0) {
+                currentGraph = null;
+                clearGraphDisplay();
+                updateInfoPanel(null);
+                updateCographViewAvailability();
+                return;
+            }
+
+            // Clamp m to valid range
+            if (currentM < 1) currentM = 1;
+            if (currentM > graphs.length) currentM = graphs.length;
+            updateInputs();
+
+            currentGraph = graphs[currentM - 1];
+            console.log("loadCurrentGraph selected:", {
+                hasNodes: !!currentGraph?.nodes,
+                nodeCount: currentGraph?.nodes?.length,
+                cotree_only: currentGraph?.cotree_only,
+                s: currentGraph?.s,
+                t: currentGraph?.t
+            });
+
+            updateCographViewAvailability();
+            renderGraph(currentGraph);
+            renderCotree(currentGraph);
+            updateInfoPanel(currentGraph);
+            updateArrowStates();
+        }
+
+        function clearGraphDisplay() {
+            linkGroup.selectAll("*").remove();
+            nodeGroup.selectAll("*").remove();
+            labelGroup.selectAll("*").remove();
+            cotreeLinkGroup.selectAll("*").remove();
+            cotreeNodeGroup.selectAll("*").remove();
+            cotreeLabelGroup.selectAll("*").remove();
+
+            if (simulation) simulation.stop();
+            if (cotreeSimulation) cotreeSimulation.stop();
+        }
+
+        // Find connected components among a subset of vertices
+        function findConnectedComponents(vertices, links) {
+            const vertexSet = new Set(vertices);
+            const parent = {};
+            vertices.forEach(v => parent[v] = v);
+
+            function find(x) {
+                if (parent[x] !== x) parent[x] = find(parent[x]);
+                return parent[x];
+            }
+
+            function union(a, b) {
+                const pa = find(a), pb = find(b);
+                if (pa !== pb) parent[pa] = pb;
+            }
+
+            // Union vertices that are connected
+            links.forEach(link => {
+                const src = typeof link.source === 'object' ? link.source.id : link.source;
+                const tgt = typeof link.target === 'object' ? link.target.id : link.target;
+                if (vertexSet.has(src) && vertexSet.has(tgt)) {
+                    union(src, tgt);
+                }
+            });
+
+            // Group by component
+            const components = {};
+            vertices.forEach(v => {
+                const root = find(v);
+                if (!components[root]) components[root] = [];
+                components[root].push(v);
+            });
+
+            return Object.values(components);
+        }
+
+        // Detect the extremal component for cograph view
+        // For s <= 4, the extremal graph is typically P(component_s-1, rest)
+        // The s-1 component can be a combination of multiple root children in a product
+        function detectExtremalComponent(graph) {
+            if (!graph || !graph.root_children || !graph.root_op) {
+                console.log("detectExtremalComponent: missing data", {
+                    hasGraph: !!graph,
+                    hasRootChildren: graph?.root_children,
+                    rootOp: graph?.root_op
+                });
+                return null;
+            }
+
+            // Only applies when root is a product (join) node
+            if (graph.root_op !== "product") {
+                console.log("detectExtremalComponent: root is not product, is:", graph.root_op);
+                return null;
+            }
+
+            const s = graph.s || currentS;
+            const targetSize = s - 1;
+            const children = graph.root_children;
+
+            console.log("detectExtremalComponent: looking for subset of size", targetSize, "from children:", children.map(c => c.size));
+
+            // Try to find a combination of children that sums to targetSize
+            // Use recursive subset sum approach
+            function findSubset(index, remaining, selectedVertices) {
+                if (remaining === 0) {
+                    return { vertices: new Set(selectedVertices), size: targetSize };
+                }
+                if (remaining < 0 || index >= children.length) {
+                    return null;
+                }
+
+                // Try including current child
+                const child = children[index];
+                if (child.size <= remaining) {
+                    const withChild = findSubset(
+                        index + 1,
+                        remaining - child.size,
+                        [...selectedVertices, ...child.vertices]
+                    );
+                    if (withChild) return withChild;
+                }
+
+                // Try without current child
+                return findSubset(index + 1, remaining, selectedVertices);
+            }
+
+            const result = findSubset(0, targetSize, []);
+            console.log("detectExtremalComponent: found", result ? `${result.vertices.size} extremal vertices` : "nothing");
+            return result;
+        }
+
+        // Update view options based on data availability
+        function updateViewAvailability() {
+            const showGraphRow = document.getElementById("show-graph").parentElement;
+            const showGraphCheckbox = document.getElementById("show-graph");
+            const showCotreeCheckbox = document.getElementById("show-cotree");
+
+            // Check if graph data is available (has nodes/links and not cotree_only)
+            const hasGraphData = currentGraph &&
+                                 currentGraph.nodes &&
+                                 currentGraph.nodes.length > 0 &&
+                                 currentGraph.cotree_only !== true;
+
+            console.log("updateViewAvailability:", {
+                hasGraph: !!currentGraph,
+                hasNodes: currentGraph?.nodes?.length,
+                cotree_only: currentGraph?.cotree_only,
+                hasGraphData,
+                currentS, currentT, currentN
+            });
+
+            // Graph checkbox: show when we have actual graph data
+            showGraphRow.style.display = hasGraphData ? "flex" : "none";
+
+            // Only force changes if switching to cotree-only mode
+            if (!hasGraphData) {
+                // No graph data available - force cotree only
+                showGraphCheckbox.checked = false;
+                showCotreeCheckbox.checked = true;
+                updatePaneVisibility();
+            }
+            // Otherwise keep current checkbox settings (don't force changes)
+
+            // Cograph view: automatically enabled when s <= 4 and n >= s + t and has graph data
+            const cographAvailable = hasGraphData && currentS <= 4 && currentN >= currentS + currentT;
+            cographView = cographAvailable;
+        }
+
+        // Keep old function name for compatibility
+        function updateCographViewAvailability() {
+            updateViewAvailability();
+        }
+
+        // Render main graph
+        function renderGraph(graph) {
+            if (!graph) return;
+
+            // Don't render if cotree_only (no graph data available)
+            if (graph.cotree_only) {
+                linkGroup.selectAll("*").remove();
+                nodeGroup.selectAll("*").remove();
+                labelGroup.selectAll("*").remove();
+                if (simulation) simulation.stop();
+                return;
+            }
+
+            // Use fixed dimensions
+            width = GRAPH_WIDTH;
+            height = GRAPH_HEIGHT;
+
+            const nodes = graph.nodes.map(n => ({...n}));
+            const links = graph.links.map(l => ({...l}));
+
+            linkGroup.selectAll("*").remove();
+            nodeGroup.selectAll("*").remove();
+            labelGroup.selectAll("*").remove();
+
+            if (simulation) simulation.stop();
+
+            // Detect extremal component for cograph view (only when n >= s+t)
+            const hasCographStructure = currentN >= currentS + currentT;
+            const extremalComponent = (cographView && hasCographStructure) ? detectExtremalComponent(graph) : null;
+
+            console.log("renderGraph: cographView=", cographView, "hasCographStructure=", hasCographStructure, "extremalComponent=", extremalComponent);
+
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // Identify extremal and other nodes FIRST (before positioning)
+            nodes.forEach(n => {
+                n.isExtremal = extremalComponent && extremalComponent.vertices.has(n.id);
+            });
+
+            const extremalCount = nodes.filter(n => n.isExtremal).length;
+            const otherCount = nodes.filter(n => !n.isExtremal).length;
+            console.log("Node classification:", extremalCount, "extremal,", otherCount, "other");
+
+            // Position nodes based on cograph view mode
+            if (cographView && extremalComponent && extremalComponent.size > 0) {
+                // Position extremal nodes in center cluster
+                const extremalNodes = nodes.filter(n => n.isExtremal);
+                const otherNodes = nodes.filter(n => !n.isExtremal);
+                const otherIds = otherNodes.map(n => n.id);
+
+                // Find connected components among non-extremal nodes
+                const outerComponents = findConnectedComponents(otherIds, links);
+
+                console.log("=== COGRAPH POSITIONING ===");
+                console.log("Extremal nodes:", extremalNodes.length);
+                console.log("Outer components:", outerComponents.length, outerComponents.map(c => c.length));
+
+                // Calculate orbit distance linearly based on vertex count
+                // Base: 220 for ~40 nodes, scale linearly with node count (smaller scaling)
+                const baseOrbitDist = parseFloat(d3.select("#orbit-dist").property("value")) || 220;
+                const baseNodeCount = 40;
+                const initialOrbitDist = baseOrbitDist * (nodes.length / baseNodeCount);
+
+                // Cluster extremal nodes VERY tightly in exact center
+                extremalNodes.forEach((n, i) => {
+                    const angle = (2 * Math.PI * i) / Math.max(1, extremalNodes.length);
+                    const r = Math.min(20, extremalNodes.length * 3);
+                    n.x = centerX + Math.cos(angle) * r;
+                    n.y = centerY + Math.sin(angle) * r;
+                });
+
+                // Position outer components evenly around the orbit
+                // Each component gets its own angular sector
+                outerComponents.forEach((component, compIdx) => {
+                    const baseAngle = (2 * Math.PI * compIdx) / outerComponents.length;
+                    const componentSpread = 0.3; // How spread out nodes within component are
+
+                    component.forEach((nodeId, nodeIdx) => {
+                        const node = nodes.find(n => n.id === nodeId);
+                        if (node) {
+                            // Assign component index for force calculations
+                            node.componentIdx = compIdx;
+                            // Position within component's sector
+                            const angleOffset = (nodeIdx - component.length / 2) * componentSpread / component.length;
+                            const angle = baseAngle + angleOffset;
+                            const radiusVariation = (nodeIdx % 2) * 10; // Slight radius variation
+                            node.x = centerX + Math.cos(angle) * (initialOrbitDist + radiusVariation);
+                            node.y = centerY + Math.sin(angle) * (initialOrbitDist + radiusVariation);
+                        }
+                    });
+                });
+
+            } else {
+                console.log("=== NORMAL POSITIONING (random) ===");
+                // Normal positioning - spread out randomly (scaled for larger canvas)
+                nodes.forEach(n => {
+                    n.x = centerX + (Math.random() - 0.5) * 400;
+                    n.y = centerY + (Math.random() - 0.5) * 400;
+                });
+            }
+
+            // Create simulation - different setup for cograph view vs normal view
+            const useCographForces = cographView && hasCographStructure && extremalComponent && extremalComponent.size > 0;
+
+            // Default force values (hardcoded to ensure they're always active)
+            const DEFAULT_LINK_STRENGTH = 9;      // Link strength (divided by 100 = 0.09)
+            const DEFAULT_CHARGE = -150;          // Negative = repulsion
+
+            // Read from hidden inputs, fallback to defaults
+            const productStrengthVal = parseFloat(d3.select("#product-strength").property("value")) || DEFAULT_LINK_STRENGTH;
+            const sumStrengthVal = parseFloat(d3.select("#sum-strength").property("value")) || DEFAULT_CHARGE;
+
+            console.log("Force values:", { productStrengthVal, sumStrengthVal });
+
+            if (useCographForces) {
+                // COGRAPH VIEW: Custom forces for s-1 component visualization
+                // Calculate orbit distance linearly based on vertex count (smaller scaling)
+                const baseOrbit = parseFloat(d3.select("#orbit-dist").property("value")) || 220;
+                const orbitDist = baseOrbit * (nodes.length / 40);  // Linear scaling with node count
+                const orbitPull = parseFloat(d3.select("#orbit-pull").property("value")) / 100;
+                const centerPull = parseFloat(d3.select("#center-pull").property("value")) / 100;
+
+                console.log("Creating COGRAPH simulation with forces:", {
+                    extremalNodes: nodes.filter(n => n.isExtremal).length,
+                    otherNodes: nodes.filter(n => !n.isExtremal).length,
+                    orbitDist, orbitPull, centerPull
+                });
+
+                // Custom force to push apart nodes from different components
+                const compRepelStrength = parseFloat(d3.select("#comp-repel").property("value"));
+
+                function componentRepulsion(strengthVal) {
+                    let nodes;
+                    let strength = strengthVal;
+
+                    function force(alpha) {
+                        for (let i = 0; i < nodes.length; i++) {
+                            const nodeA = nodes[i];
+                            if (nodeA.isExtremal) continue;
+
+                            for (let j = i + 1; j < nodes.length; j++) {
+                                const nodeB = nodes[j];
+                                if (nodeB.isExtremal) continue;
+
+                                // Only repel nodes from DIFFERENT components
+                                if (nodeA.componentIdx !== nodeB.componentIdx) {
+                                    const dx = nodeB.x - nodeA.x;
+                                    const dy = nodeB.y - nodeA.y;
+                                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                                    const repelForce = strength * alpha / (dist * dist);
+
+                                    const fx = dx / dist * repelForce;
+                                    const fy = dy / dist * repelForce;
+
+                                    nodeA.vx -= fx;
+                                    nodeA.vy -= fy;
+                                    nodeB.vx += fx;
+                                    nodeB.vy += fy;
+                                }
+                            }
+                        }
+                    }
+
+                    force.initialize = function(_) { nodes = _; };
+                    force.strength = function(val) {
+                        if (val === undefined) return strength;
+                        strength = val;
+                        return force;
+                    };
+                    return force;
+                }
+
+                simulation = d3.forceSimulation(nodes)
+                    // Keep links for edge display
+                    .force("link", d3.forceLink(links).id(d => d.id).distance(40).strength(productStrengthVal / 100))
+                    // Pull extremal nodes to center
+                    .force("centerX", d3.forceX(width / 2).strength(d => d.isExtremal ? centerPull : 0.01))
+                    .force("centerY", d3.forceY(height / 2).strength(d => d.isExtremal ? centerPull : 0.01))
+                    // Push non-extremal to orbit
+                    .force("radial", d3.forceRadial(orbitDist, width / 2, height / 2)
+                        .strength(d => d.isExtremal ? 0 : orbitPull))
+                    // Push apart different components
+                    .force("componentRepel", componentRepulsion(compRepelStrength))
+                    // General repulsion (use charge slider value)
+                    .force("charge", d3.forceManyBody().strength(sumStrengthVal))
+                    // Collision
+                    .force("collision", d3.forceCollide().radius(8))
+                    .alpha(1.0)
+                    .alphaDecay(0.02);
+
+            } else {
+                // NORMAL VIEW: Standard force-directed layout
+                console.log("Creating NORMAL simulation with forces:", {
+                    linkStrength: productStrengthVal / 100,
+                    chargeStrength: sumStrengthVal,
+                    nodeCount: nodes.length,
+                    linkCount: links.length
+                });
+
+                simulation = d3.forceSimulation(nodes)
+                    .force("link", d3.forceLink(links).id(d => d.id).distance(60).strength(0.1))
+                    .force("charge", d3.forceManyBody().strength(-150))
+                    .force("center", d3.forceCenter(width / 2, height / 2))
+                    .force("collision", d3.forceCollide().radius(15))
+                    .alpha(1.0)
+                    .alphaDecay(0.02);
+
+                console.log("NORMAL simulation created with hardcoded forces: link=0.1, charge=-150");
+            }
+
+            // Force the simulation to start
+            simulation.alpha(1.0).restart();
+
+            const link = linkGroup.selectAll("line")
+                .data(links)
+                .join("line")
+                .attr("class", "link");
+
+            const node = nodeGroup.selectAll("circle")
+                .data(nodes)
+                .join("circle")
+                .attr("class", "node")
+                .attr("r", 8)
+                .attr("fill", "#000000")
+                .call(drag(simulation));
+
+            const label = labelGroup.selectAll("text")
+                .data(nodes)
+                .join("text")
+                .attr("class", "node-label")
+                .attr("text-anchor", "middle")
+                .attr("dy", ".35em")
+                .text(d => showLabels ? d.id : "");
+
+            simulation.on("tick", () => {
+                nodes.forEach(d => {
+                    d.x = Math.max(BOUNDARY, Math.min(width - BOUNDARY, d.x));
+                    d.y = Math.max(BOUNDARY, Math.min(height - BOUNDARY, d.y));
+                });
+
+                link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+                node.attr("cx", d => d.x).attr("cy", d => d.y);
+                label.attr("x", d => d.x).attr("y", d => d.y);
+            });
+        }
+
+        // Render cotree
+        function renderCotree(graph) {
+            if (!graph || !graph.structure) return;
+
+            // Use fixed dimensions
+            cotreeWidth = COTREE_WIDTH;
+            cotreeHeight = COTREE_HEIGHT;
+
+            const hierarchyData = parseCotreeHierarchy(graph.structure);
+            if (!hierarchyData) return;
+
+            cotreeLinkGroup.selectAll("*").remove();
+            cotreeNodeGroup.selectAll("*").remove();
+            cotreeLabelGroup.selectAll("*").remove();
+
+            if (cotreeSimulation) cotreeSimulation.stop();
+
+            const root = d3.hierarchy(hierarchyData);
+            const descendants = root.descendants();
+
+            let nodes;
+            if (cotreeHierarchical) {
+                const treeLayout = d3.tree().size([cotreeWidth - 80, cotreeHeight - 60]);
+                treeLayout(root);
+                nodes = descendants.map((d, i) => ({
+                    id: i, x: d.x + 40, y: d.y + 30, treeX: d.x + 40, treeY: d.y + 30,
+                    type: d.data.type, label: d.data.label, depth: d.depth
+                }));
+            } else {
+                nodes = descendants.map((d, i) => {
+                    const depth = d.depth;
+                    const siblings = d.parent ? d.parent.children : [d];
+                    const siblingIndex = siblings.indexOf(d);
+                    const siblingCount = siblings.length;
+                    const baseAngle = d.parent ? (2 * Math.PI * siblingIndex / siblingCount) + (Math.random() - 0.5) * 0.3 : 0;
+                    const radius = depth * 60 + (Math.random() - 0.5) * 20;
+                    return {
+                        id: i,
+                        x: cotreeWidth / 2 + Math.cos(baseAngle) * radius,
+                        y: cotreeHeight / 2 + Math.sin(baseAngle) * radius,
+                        type: d.data.type, label: d.data.label, depth: depth
+                    };
+                });
+            }
+
+            const links = root.links().map(d => ({
+                source: nodes[descendants.indexOf(d.source)],
+                target: nodes[descendants.indexOf(d.target)]
+            }));
+
+            const scaleFactor = Math.max(1, Math.sqrt(nodes.length / 20));
+
+            cotreeSimulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).id(d => d.id).distance(50 / scaleFactor).strength(1.0))
+                .force("charge", d3.forceManyBody().strength(-150 / scaleFactor))
+                .force("center", d3.forceCenter(cotreeWidth / 2, cotreeHeight / 2).strength(0.05))
+                .force("collision", d3.forceCollide().radius(d => d.type === "leaf" ? 10 : 16))
+                .alpha(0.5)
+                .alphaDecay(0.02);
+
+            if (cotreeHierarchical) {
+                cotreeSimulation
+                    .force("x", d3.forceX(d => d.treeX).strength(0.1))
+                    .force("y", d3.forceY(d => d.treeY).strength(0.3));
+            }
+
+            const link = cotreeLinkGroup.selectAll("line")
+                .data(links)
+                .join("line")
+                .attr("stroke", "#999")
+                .attr("stroke-opacity", 0.6)
+                .attr("stroke-width", 1.5);
+
+            const node = cotreeNodeGroup.selectAll("circle")
+                .data(nodes)
+                .join("circle")
+                .attr("r", d => d.type === "leaf" ? 8 : 14)
+                .attr("fill", d => d.depth === 0 ? "#8b5cf6" : "#000")
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 2)
+                .call(cotreeDrag(cotreeSimulation));
+
+            const label = cotreeLabelGroup.selectAll("text")
+                .data(nodes.filter(n => n.type !== "leaf"))
+                .join("text")
+                .attr("class", "cotree-node-label")
+                .text(d => d.label);
+
+            cotreeSimulation.on("tick", () => {
+                nodes.forEach(d => {
+                    d.x = Math.max(BOUNDARY, Math.min(cotreeWidth - BOUNDARY, d.x));
+                    d.y = Math.max(BOUNDARY, Math.min(cotreeHeight - BOUNDARY, d.y));
+                });
+
+                link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+                node.attr("cx", d => d.x).attr("cy", d => d.y);
+                label.attr("x", d => d.x).attr("y", d => d.y);
+            });
+        }
+
+        function parseCotreeHierarchy(structStr) {
+            function parse(str) {
+                str = str.trim();
+                if (str === "1") return { type: "leaf", label: "", children: [] };
+
+                let op = null, innerStart = 0;
+                if (str.startsWith("S(")) { op = "sum"; innerStart = 2; }
+                else if (str.startsWith("P(")) { op = "product"; innerStart = 2; }
+
+                if (op) {
+                    const inner = str.slice(innerStart, -1);
+                    const childStrs = splitTopLevel(inner);
+                    const children = childStrs.map(c => parse(c)).filter(c => c !== null);
+                    return { type: op, label: op === "sum" ? "+" : "×", children };
+                }
+                return null;
+            }
+
+            function splitTopLevel(str) {
+                const parts = [];
+                let depth = 0, current = "";
+                for (const char of str) {
+                    if (char === "(") depth++;
+                    else if (char === ")") depth--;
+                    else if (char === "," && depth === 0) {
+                        parts.push(current.trim());
+                        current = "";
+                        continue;
+                    }
+                    current += char;
+                }
+                if (current.trim()) parts.push(current.trim());
+                return parts;
+            }
+
+            return parse(structStr);
+        }
+
+        function drag(simulation) {
+            return d3.drag()
+                .on("start", (event, d) => {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    d.fx = d.x; d.fy = d.y;
+                })
+                .on("drag", (event, d) => { d.fx = event.x; d.fy = event.y; })
+                .on("end", (event, d) => {
+                    if (!event.active) simulation.alphaTarget(0);
+                    if (physicsEnabled) { d.fx = null; d.fy = null; }
+                });
+        }
+
+        function cotreeDrag(simulation) {
+            return d3.drag()
+                .on("start", (event, d) => {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    d.fx = d.x; d.fy = d.y;
+                })
+                .on("drag", (event, d) => { d.fx = event.x; d.fy = event.y; })
+                .on("end", (event, d) => {
+                    if (!event.active) simulation.alphaTarget(0);
+                    if (physicsEnabled) { d.fx = null; d.fy = null; }
+                });
+        }
+
+        function updateInfoPanel(graph) {
+            const content = document.getElementById("info-content");
+            const completenessInfo = document.getElementById("completeness-info");
+
+            if (!graph) {
+                content.innerHTML = '<p style="color: #6c757d; font-size: 12px;">No graph for these parameters</p>';
+                completenessInfo.innerHTML = '';
+                updatePaneVisibility();
+                return;
+            }
+
+            content.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">Edges</span>
+                    <span class="info-value">${graph.edges_count}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Depth</span>
+                    <span class="info-value">${graph.depth !== undefined ? graph.depth : 'N/A'}</span>
+                </div>
+            `;
+
+            // Update completeness info
+            if (currentS <= currentT && currentT <= 12 && currentN <= 20) {
+                completenessInfo.innerHTML = '<span style="color: #28a745;">All extremal cographs shown.</span>';
+            } else if (currentN >= 21) {
+                completenessInfo.innerHTML = '<span style="color: #856404;">Dynamic Programming used lattice truncation - only guaranteed to find one extremal cograph.</span>';
+            } else {
+                completenessInfo.innerHTML = '';
+            }
+
+            // Update button visibility based on current state
+            updatePaneVisibility();
+        }
+
+        function saveCotreeCSV() {
+            if (!currentGraph || !currentGraph.structure) return;
+
+            const csv = `s,t,n,edges,depth,structure\n${currentS},${currentT},${currentN},${currentGraph.edges_count},${currentGraph.depth},"${currentGraph.structure}"`;
+            downloadCSV(csv, `cotree_K${currentS}_${currentT}_n${currentN}.csv`);
+        }
+
+        function saveCographCSV() {
+            if (!currentGraph || !currentGraph.links || currentGraph.cotree_only) return;
+
+            let csv = 'source,target\n';
+            currentGraph.links.forEach(link => {
+                const src = typeof link.source === 'object' ? link.source.id : link.source;
+                const tgt = typeof link.target === 'object' ? link.target.id : link.target;
+                csv += `${src},${tgt}\n`;
+            });
+            downloadCSV(csv, `cograph_K${currentS}_${currentT}_n${currentN}.csv`);
+        }
+
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function togglePhysics() {
+            physicsEnabled = !physicsEnabled;
+            const btn = document.getElementById("physics-toggle");
+            btn.textContent = physicsEnabled ? "Freeze" : "Unfreeze";
+
+            if (physicsEnabled) {
+                if (simulation) {
+                    simulation.alpha(0.3).restart();
+                    simulation.nodes().forEach(d => { d.fx = null; d.fy = null; });
+                }
+                if (cotreeSimulation) {
+                    cotreeSimulation.alpha(0.3).restart();
+                    cotreeSimulation.nodes().forEach(d => { d.fx = null; d.fy = null; });
+                }
+            } else {
+                if (simulation) simulation.stop();
+                if (cotreeSimulation) cotreeSimulation.stop();
+            }
+        }
+
+        function toggleLabels() {
+            showLabels = !showLabels;
+            labelGroup.selectAll("text").text(d => showLabels ? d.id : "");
+        }
+
+        function resetPositions() {
+            if (currentGraph) {
+                renderGraph(currentGraph);
+                renderCotree(currentGraph);
+            }
+        }
+
         function updatePaneVisibility() {
             const showGraph = document.getElementById("show-graph").checked;
             const showCotree = document.getElementById("show-cotree").checked;
+            const isCotreeOnly = !currentGraph || !currentGraph.nodes || currentGraph.cotree_only === true;
 
-            document.getElementById("graph-pane").classList.toggle("hidden", !showGraph);
-            document.getElementById("cotree-pane").classList.toggle("hidden", !showCotree);
+            const graphPaneEl = document.getElementById("graph-pane");
+            const cotreePaneEl = document.getElementById("cotree-pane");
+
+            graphPaneEl.classList.toggle("hidden", !showGraph);
+            cotreePaneEl.classList.toggle("hidden", !showCotree);
             document.getElementById("split-divider").classList.toggle("hidden", !showGraph || !showCotree);
 
-            // Show/hide slider groups based on pane visibility
-            document.getElementById("graph-sliders").style.display = showGraph ? "block" : "none";
-            document.getElementById("cotree-sliders").style.display = showCotree ? "block" : "none";
+            // Reset flex styles when showing both panes (equal split)
+            if (showGraph && showCotree) {
+                graphPaneEl.style.flex = "1";
+                cotreePaneEl.style.flex = "1";
+            } else if (showGraph) {
+                graphPaneEl.style.flex = "1";
+            } else if (showCotree) {
+                cotreePaneEl.style.flex = "1";
+            }
 
-            // Update viewboxes after visibility change
-            setTimeout(updateDimensions, 50);
+            // Update save button visibility
+            const saveCographBtn = document.getElementById("save-cograph-btn");
+            const saveCotreeBtn = document.getElementById("save-cotree-btn");
+
+            // Cograph button: visible only when graph pane shown and not cotree_only
+            saveCographBtn.style.display = (showGraph && !isCotreeOnly) ? "block" : "none";
+            // Cotree button: visible only when cotree pane shown
+            saveCotreeBtn.style.display = showCotree ? "block" : "none";
         }
 
         function updateDimensions() {
-            width = graphPane.clientWidth || 800;
-            height = graphPane.clientHeight || 400;
-            svg.attr("viewBox", [0, 0, width, height]);
-
-            cotreeWidth = cotreePane.clientWidth || 800;
-            cotreeHeight = cotreePane.clientHeight || 400;
-            cotreeSvg.attr("viewBox", [0, 0, cotreeWidth, cotreeHeight]);
+            // Dimensions are fixed, no need to update viewBox
+            // This function is kept for compatibility but does nothing
         }
 
-        // Resizable split divider
+        // Slider handlers (sliders are hidden but values are used)
+        d3.select("#product-strength").on("input", function() {
+            const val = parseFloat(this.value);
+            if (simulation && simulation.force("link")) {
+                simulation.force("link").strength(val / 100);
+                simulation.alpha(0.3).restart();
+            }
+        });
+
+        d3.select("#sum-strength").on("input", function() {
+            const val = parseFloat(this.value);
+            if (simulation && simulation.force("charge")) {
+                simulation.force("charge").strength(val);
+                simulation.alpha(0.3).restart();
+            }
+        });
+
+        d3.select("#orbit-dist").on("input", function() {
+            const val = parseFloat(this.value);
+            if (simulation && cographView) {
+                const radialForce = simulation.force("radial");
+                // Apply linear scaling based on node count (smaller scaling)
+                const nodeCount = simulation.nodes().length;
+                const scaledRadius = val * (nodeCount / 40);
+                if (radialForce) radialForce.radius(scaledRadius);
+                simulation.alpha(0.5).restart();
+            }
+        });
+
+        d3.select("#orbit-pull").on("input", function() {
+            const val = parseFloat(this.value) / 100;
+            if (simulation && cographView) {
+                const radialForce = simulation.force("radial");
+                if (radialForce) radialForce.strength(d => d.isExtremal ? 0 : val);
+                simulation.alpha(0.5).restart();
+            }
+        });
+
+        d3.select("#center-pull").on("input", function() {
+            const val = parseFloat(this.value) / 100;
+            if (simulation && cographView) {
+                const xForce = simulation.force("centerX");
+                const yForce = simulation.force("centerY");
+                if (xForce) xForce.strength(d => d.isExtremal ? val : 0.01);
+                if (yForce) yForce.strength(d => d.isExtremal ? val : 0.01);
+                simulation.alpha(0.5).restart();
+            }
+        });
+
+        d3.select("#comp-repel").on("input", function() {
+            const val = parseFloat(this.value);
+            if (simulation && cographView) {
+                const compForce = simulation.force("componentRepel");
+                if (compForce) compForce.strength(val);
+                simulation.alpha(0.5).restart();
+            }
+        });
+
+        // Split divider drag
         (function() {
             const divider = document.getElementById("split-divider");
             const container = document.querySelector(".split-container");
@@ -716,8 +1699,6 @@
                 const containerRect = container.getBoundingClientRect();
                 const offsetY = e.clientY - containerRect.top;
                 const totalHeight = containerRect.height;
-
-                // Calculate percentage (leave room for divider)
                 const dividerHeight = 8;
                 const minHeight = 100;
                 const availableHeight = totalHeight - dividerHeight;
@@ -743,1170 +1724,62 @@
             });
         })();
 
-        // Parse cotree structure string into nodes and links
-        function parseCotreeStructure(structStr) {
-            const nodes = [];
-            const links = [];
-            let nodeId = 0;
-
-            function parse(str, parentId = null) {
-                str = str.trim();
-
-                // Check if it's a leaf (just "1")
-                if (str === "1") {
-                    const id = nodeId++;
-                    nodes.push({ id, type: "leaf", label: "" });
-                    if (parentId !== null) {
-                        links.push({ source: parentId, target: id });
-                    }
-                    return id;
-                }
-
-                // Check for S(...) or P(...)
-                let op = null;
-                let innerStart = 0;
-                if (str.startsWith("S(")) {
-                    op = "sum";
-                    innerStart = 2;
-                } else if (str.startsWith("P(")) {
-                    op = "product";
-                    innerStart = 2;
-                }
-
-                if (op) {
-                    const id = nodeId++;
-                    nodes.push({ id, type: op, label: op === "sum" ? "+" : "×" });
-                    if (parentId !== null) {
-                        links.push({ source: parentId, target: id });
-                    }
-
-                    // Parse children - need to handle nested parentheses
-                    const inner = str.slice(innerStart, -1); // Remove S( and )
-                    const children = splitTopLevel(inner);
-
-                    for (const child of children) {
-                        parse(child, id);
-                    }
-
-                    return id;
-                }
-
-                return null;
-            }
-
-            // Split by comma at top level (not inside parentheses)
-            function splitTopLevel(str) {
-                const parts = [];
-                let depth = 0;
-                let current = "";
-
-                for (const char of str) {
-                    if (char === "(") depth++;
-                    else if (char === ")") depth--;
-                    else if (char === "," && depth === 0) {
-                        parts.push(current.trim());
-                        current = "";
-                        continue;
-                    }
-                    current += char;
-                }
-                if (current.trim()) parts.push(current.trim());
-                return parts;
-            }
-
-            parse(structStr);
-            return { nodes, links };
-        }
-
-        // Render cotree visualization
-        function renderCotree(graph) {
-            if (!graph || !graph.structure) return;
-
-            // Update dimensions
-            cotreeWidth = cotreePane.clientWidth || 800;
-            cotreeHeight = cotreePane.clientHeight || 400;
-            cotreeSvg.attr("viewBox", [0, 0, cotreeWidth, cotreeHeight]);
-
-            // Parse into hierarchical structure for d3.tree
-            const hierarchyData = parseCotreeHierarchy(graph.structure);
-            if (!hierarchyData) return;
-
-            // Clear existing
-            cotreeLinkGroup.selectAll("*").remove();
-            cotreeNodeGroup.selectAll("*").remove();
-            cotreeLabelGroup.selectAll("*").remove();
-
-            // Stop existing simulation
-            if (cotreeSimulation) {
-                cotreeSimulation.stop();
-            }
-
-            // Create hierarchy
-            const root = d3.hierarchy(hierarchyData);
-            const descendants = root.descendants();
-
-            // Create nodes based on layout mode
-            let nodes;
-            if (cotreeHierarchical) {
-                // Use d3.tree for top-down hierarchical layout
-                const treeLayout = d3.tree()
-                    .size([cotreeWidth - 80, cotreeHeight - 60]);
-                treeLayout(root);
-
-                nodes = descendants.map((d, i) => ({
-                    id: i,
-                    x: d.x + 40,
-                    y: d.y + 30,
-                    treeX: d.x + 40,
-                    treeY: d.y + 30,
-                    type: d.data.type,
-                    label: d.data.label,
-                    depth: d.depth
-                }));
-            } else {
-                // Radial layout - children can go all around
-                nodes = descendants.map((d, i) => {
-                    const depth = d.depth;
-                    const siblings = d.parent ? d.parent.children : [d];
-                    const siblingIndex = siblings.indexOf(d);
-                    const siblingCount = siblings.length;
-
-                    const baseAngle = d.parent ?
-                        (2 * Math.PI * siblingIndex / siblingCount) + (Math.random() - 0.5) * 0.3 : 0;
-                    const radius = depth * 60 + (Math.random() - 0.5) * 20;
-
-                    return {
-                        id: i,
-                        x: cotreeWidth / 2 + Math.cos(baseAngle) * radius,
-                        y: cotreeHeight / 2 + Math.sin(baseAngle) * radius,
-                        type: d.data.type,
-                        label: d.data.label,
-                        depth: depth
-                    };
-                });
-            }
-
-            const links = root.links().map(d => ({
-                source: nodes[descendants.indexOf(d.source)],
-                target: nodes[descendants.indexOf(d.target)]
-            }));
-
-            // Get current slider values for cotree
-            const linkStrengthVal = parseFloat(d3.select("#cotree-link-strength").property("value"));
-            const chargeStrengthVal = parseFloat(d3.select("#cotree-charge-strength").property("value"));
-
-            // Scale forces based on tree size
-            const scaleFactor = Math.max(1, Math.sqrt(nodes.length / 20));
-            const linkDist = 50 / scaleFactor;
-
-            // Create force simulation
-            cotreeSimulation = d3.forceSimulation(nodes)
-                .force("link", d3.forceLink(links)
-                    .id(d => d.id)
-                    .distance(linkDist)
-                    .strength(Math.abs(linkStrengthVal) / 100))
-                .force("charge", d3.forceManyBody()
-                    .strength(chargeStrengthVal / scaleFactor))
-                .force("center", d3.forceCenter(cotreeWidth / 2, cotreeHeight / 2).strength(0.05))
-                .force("collision", d3.forceCollide().radius(d => d.type === "leaf" ? 10 : 16))
-                .alpha(0.5)
-                .alphaDecay(0.02);
-
-            // Add hierarchical force if in hierarchical mode
-            if (cotreeHierarchical) {
-                cotreeSimulation
-                    .force("x", d3.forceX(d => d.treeX).strength(0.1))
-                    .force("y", d3.forceY(d => d.treeY).strength(0.3));
-            }
-
-            // Draw links
-            const link = cotreeLinkGroup.selectAll("line")
-                .data(links)
-                .join("line")
-                .attr("stroke", "#999")
-                .attr("stroke-opacity", 0.6)
-                .attr("stroke-width", 1.5);
-
-            // Draw nodes (root in purple, others in black)
-            const node = cotreeNodeGroup.selectAll("circle")
-                .data(nodes)
-                .join("circle")
-                .attr("r", d => d.type === "leaf" ? 8 : 14)
-                .attr("fill", d => d.depth === 0 ? "#8b5cf6" : "#000")
-                .attr("stroke", "#fff")
-                .attr("stroke-width", 2)
-                .call(cotreeDrag(cotreeSimulation));
-
-            // Draw labels (+ or ×)
-            const label = cotreeLabelGroup.selectAll("text")
-                .data(nodes.filter(n => n.type !== "leaf"))
-                .join("text")
-                .attr("class", "cotree-node-label")
-                .text(d => d.label);
-
-            // Update positions on tick with boundary constraints
-            cotreeSimulation.on("tick", () => {
-                // Clamp nodes within boundaries
-                nodes.forEach(d => {
-                    d.x = Math.max(cotreeBoundary, Math.min(cotreeWidth - cotreeBoundary, d.x));
-                    d.y = Math.max(cotreeBoundary, Math.min(cotreeHeight - cotreeBoundary, d.y));
-                });
-
-                link
-                    .attr("x1", d => d.source.x)
-                    .attr("y1", d => d.source.y)
-                    .attr("x2", d => d.target.x)
-                    .attr("y2", d => d.target.y);
-
-                node
-                    .attr("cx", d => d.x)
-                    .attr("cy", d => d.y);
-
-                label
-                    .attr("x", d => d.x)
-                    .attr("y", d => d.y);
-            });
-        }
-
-        // Parse cotree into hierarchical format for d3.hierarchy
-        function parseCotreeHierarchy(structStr) {
-            function parse(str) {
-                str = str.trim();
-
-                if (str === "1") {
-                    return { type: "leaf", label: "", children: [] };
-                }
-
-                let op = null;
-                let innerStart = 0;
-                if (str.startsWith("S(")) {
-                    op = "sum";
-                    innerStart = 2;
-                } else if (str.startsWith("P(")) {
-                    op = "product";
-                    innerStart = 2;
-                }
-
-                if (op) {
-                    const inner = str.slice(innerStart, -1);
-                    const childStrs = splitTopLevel(inner);
-                    const children = childStrs.map(c => parse(c)).filter(c => c !== null);
-
-                    return {
-                        type: op,
-                        label: op === "sum" ? "+" : "×",
-                        children: children
-                    };
-                }
-
-                return null;
-            }
-
-            function splitTopLevel(str) {
-                const parts = [];
-                let depth = 0;
-                let current = "";
-
-                for (const char of str) {
-                    if (char === "(") depth++;
-                    else if (char === ")") depth--;
-                    else if (char === "," && depth === 0) {
-                        parts.push(current.trim());
-                        current = "";
-                        continue;
-                    }
-                    current += char;
-                }
-                if (current.trim()) parts.push(current.trim());
-                return parts;
-            }
-
-            return parse(structStr);
-        }
-
-        // Cotree drag handler
-        function cotreeDrag(simulation) {
-            function dragstarted(event, d) {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
-                d.fx = d.x;
-                d.fy = d.y;
-            }
-
-            function dragged(event, d) {
-                d.fx = event.x;
-                d.fy = event.y;
-            }
-
-            function dragended(event, d) {
-                if (!event.active) simulation.alphaTarget(0);
-                if (physicsEnabled) {
-                    d.fx = null;
-                    d.fy = null;
-                }
-            }
-
-            return d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended);
-        }
-
-        // Show/hide loading overlay
-        function showLoading(show) {
-            document.getElementById("loading-overlay").classList.toggle("hidden", !show);
-            document.getElementById("folder-select").disabled = show;
-        }
-
-        // Show "no folder selected" message
-        function showNoFolderMessage() {
-            const list = d3.select("#graph-list");
-            list.html(`
-                <div class="no-folder-message">
-                    <h3>No folder selected</h3>
-                    <p>Select an exports folder from the dropdown above to view graphs</p>
-                </div>
-            `);
-            d3.select("#total-graphs").text("0");
-            d3.select("#current-graph-label").text("Select a folder first");
-
-            // Clear the graph display
-            linkGroup.selectAll("*").remove();
-            nodeGroup.selectAll("*").remove();
-            labelGroup.selectAll("*").remove();
-
-            // Clear the cotree display
-            cotreeLinkGroup.selectAll("*").remove();
-            cotreeNodeGroup.selectAll("*").remove();
-            cotreeLabelGroup.selectAll("*").remove();
-
-            // Clear info panel
-            d3.select("#info-content").html(`
-                <p style="color: #6c757d; font-size: 13px;">Select a folder and graph to view details</p>
-            `);
-        }
-
-        // Load available folders
-        async function loadFolders() {
+        // Initialize
+        async function init() {
             try {
-                const response = await fetch("/api/folders");
-                const folders = await response.json();
+                // Load index of available parameters
+                const response = await fetch("/api/index");
+                const indexData = await response.json();
+                paramIndex = indexData.params || [];
 
-                const select = document.getElementById("folder-select");
-                // Clear existing options except the first
-                while (select.options.length > 1) {
-                    select.remove(1);
-                }
+                buildAvailableParams();
 
-                folders.forEach(folder => {
-                    const option = document.createElement("option");
-                    option.value = folder.path;
-                    const cacheIndicator = folder.has_cache ? " [cached]" : "";
-                    option.textContent = `${folder.name} (${folder.file_count} files)${cacheIndicator}`;
-                    select.appendChild(option);
-                });
-            } catch (error) {
-                console.error("Failed to load folders:", error);
-            }
-        }
+                // Set initial parameters to s=2, t=3, n=16
+                currentS = 2;
+                currentT = 3;
 
-        // Handle folder selection
-        async function selectFolder(folderPath, force = false) {
-            if (!folderPath) {
-                showNoFolderMessage();
-                return;
-            }
+                // Load data for initial parameters
+                await loadParamData(currentS, currentT);
 
-            showLoading(true);
-            currentFolder = folderPath;
+                // Set initial n to 16
+                currentN = 16;
+                currentM = 1;
 
-            try {
-                const response = await fetch("/api/select-folder", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ folder: folderPath, force: force })
-                });
+                updateInputs();
+                updateArrowStates();
+                loadCurrentGraph();
 
-                const result = await response.json();
-                if (!response.ok) {
-                    alert("Error: " + (result.error || "Failed to load folder"));
-                    showLoading(false);
-                    return;
-                }
-
-                // Load data directly from response
-                allGraphs = result.data || [];
-                currentGraph = null;
-
-                if (allGraphs.length === 0) {
-                    showNoFolderMessage();
-                    return;
-                }
-
-                // Update status to show if cache was used
-                const statusText = result.used_cache ? "(cached)" : "(generated)";
-                console.log(`Loaded ${allGraphs.length} graphs ${statusText}`);
-
-                // Refresh folder list to update cache indicators
-                const currentValue = document.getElementById("folder-select").value;
-                await loadFolders();
-                document.getElementById("folder-select").value = currentValue;
-
-                initializeFilters();
-                applyFilters();
+                // Ensure split panes are properly initialized
+                updatePaneVisibility();
 
             } catch (error) {
-                console.error("Failed to select folder:", error);
-                alert("Failed to load folder: " + error.message);
+                console.error("Failed to load index:", error);
             } finally {
-                showLoading(false);
+                document.getElementById("loading-overlay").classList.add("hidden");
             }
         }
 
-        // Initialize on page load
-        document.addEventListener("DOMContentLoaded", async () => {
-            await loadFolders();
+        // Event listeners
+        document.addEventListener("DOMContentLoaded", () => {
+            init();
 
-            // Set up folder selector
-            document.getElementById("folder-select").addEventListener("change", (e) => {
-                const forceRecalc = document.getElementById("force-recalculate").checked;
-                selectFolder(e.target.value, forceRecalc);
+            // Input change handlers
+            ['s', 't', 'n'].forEach(param => {
+                const input = document.getElementById(`${param}-input`);
+                input.addEventListener("change", () => handleInputChange(param));
+                input.addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") handleInputChange(param);
+                });
             });
 
-            // Set up pane visibility toggles
+            // Checkbox handlers
             document.getElementById("show-graph").addEventListener("change", updatePaneVisibility);
             document.getElementById("show-cotree").addEventListener("change", updatePaneVisibility);
-
-            // Set up hierarchical toggle
             document.getElementById("cotree-hierarchical").addEventListener("change", () => {
                 cotreeHierarchical = document.getElementById("cotree-hierarchical").checked;
                 if (currentGraph) renderCotree(currentGraph);
             });
-
-            // Initialize slider visibility
-            updatePaneVisibility();
-
-            // Show no folder message initially
-            showNoFolderMessage();
         });
-
-        function initializeFilters() {
-            // Clear existing options first
-            const stSelect = d3.select("#filter-st");
-            stSelect.selectAll("option").remove();
-            stSelect.append("option").attr("value", "").text("All");
-
-            const nSelect = d3.select("#filter-n");
-            nSelect.selectAll("option").remove();
-            nSelect.append("option").attr("value", "").text("All");
-
-            // Check if we have profile-based or K-based data
-            const hasProfiles = allGraphs.some(g => g.profile !== null && g.profile !== undefined);
-            const hasKst = allGraphs.some(g => g.s !== null && g.s !== undefined);
-
-            // Update filter label
-            const filterLabel = d3.select("#filter-st-label");
-            if (hasProfiles && !hasKst) {
-                filterLabel.text("Filter by Profile:");
-            } else {
-                filterLabel.text("Filter by K_{s,t}:");
-            }
-
-            if (hasProfiles) {
-                // Populate profile filter - group by profile[1:] since profile[0] is always n
-                const profileSet = new Map();
-                allGraphs.forEach(g => {
-                    if (g.profile) {
-                        // Use profile from index 1 onwards as key (index 0 is n, which varies)
-                        const key = g.profile.slice(1).join(',');
-                        if (!profileSet.has(key)) {
-                            profileSet.set(key, g.profile.slice(1));
-                        }
-                    }
-                });
-                Array.from(profileSet.entries()).sort((a, b) => {
-                    // Sort by profile length, then lexicographically (descending)
-                    if (a[1].length !== b[1].length) return a[1].length - b[1].length;
-                    for (let i = 0; i < a[1].length; i++) {
-                        if (a[1][i] !== b[1][i]) return b[1][i] - a[1][i];
-                    }
-                    return 0;
-                }).forEach(([key, profile]) => {
-                    stSelect.append("option")
-                        .attr("value", "profile:" + key)
-                        .text(`(∞,${profile.slice(0, 4).join(',')})${profile.length > 4 ? '...' : ''}`);
-                });
-            }
-
-            if (hasKst) {
-                // Populate s,t filter
-                const stSet = new Set(allGraphs.filter(g => g.s !== null).map(g => `${g.s},${g.t}`));
-                Array.from(stSet).sort((a, b) => {
-                    const [s1, t1] = a.split(',').map(Number);
-                    const [s2, t2] = b.split(',').map(Number);
-                    return s1 !== s2 ? s1 - s2 : t1 - t2;
-                }).forEach(st => {
-                    const [s, t] = st.split(',');
-                    stSelect.append("option")
-                        .attr("value", st)
-                        .text(`K_{${s},${t}}`);
-                });
-            }
-
-            // Populate n filter
-            const nSet = new Set(allGraphs.map(g => g.n));
-            Array.from(nSet).sort((a, b) => a - b).forEach(n => {
-                nSelect.append("option")
-                    .attr("value", n)
-                    .text(`n = ${n}`);
-            });
-
-            // Event listeners
-            d3.select("#filter-st").on("change", applyFilters);
-            d3.select("#filter-n").on("change", applyFilters);
-
-            // Graph slider listeners
-            d3.select("#graph-boundary").on("input", updateGraphBoundary);
-            d3.select("#graph-link-strength").on("input", updateGraphLinkStrength);
-            d3.select("#graph-charge-strength").on("input", updateGraphChargeStrength);
-            d3.select("#graph-sum-force").on("input", updateGraphSumForce);
-            d3.select("#graph-product-force").on("input", updateGraphProductForce);
-
-            // Cotree slider listeners
-            d3.select("#cotree-boundary").on("input", updateCotreeBoundary);
-            d3.select("#cotree-link-strength").on("input", updateCotreeLinkStrength);
-            d3.select("#cotree-charge-strength").on("input", updateCotreeChargeStrength);
-
-            d3.select("#total-graphs").text(allGraphs.length);
-        }
-
-        function applyFilters() {
-            const stFilter = d3.select("#filter-st").property("value");
-            const nFilter = d3.select("#filter-n").property("value");
-
-            filteredGraphs = allGraphs.filter(g => {
-                if (stFilter) {
-                    if (stFilter.startsWith("profile:")) {
-                        // Filter by profile (index 1 onwards)
-                        const profileKey = stFilter.slice(8); // Remove "profile:" prefix
-                        if (!g.profile) return false;
-                        const gProfileKey = g.profile.slice(1).join(',');
-                        if (gProfileKey !== profileKey) return false;
-                    } else {
-                        // Filter by K_{s,t}
-                        if (`${g.s},${g.t}` !== stFilter) return false;
-                    }
-                }
-                if (nFilter && g.n !== parseInt(nFilter)) return false;
-                return true;
-            });
-
-            // Sort: profiles first by profile then n, K_{s,t} by s,t,n
-            filteredGraphs.sort((a, b) => {
-                // If both have profiles, sort by profile then n
-                if (a.profile && b.profile) {
-                    const aKey = a.profile.slice(1).join(',');
-                    const bKey = b.profile.slice(1).join(',');
-                    if (aKey !== bKey) return aKey.localeCompare(bKey);
-                    if (a.n !== b.n) return a.n - b.n;
-                    return a.struct_index - b.struct_index;
-                }
-                // Otherwise sort by s,t,n
-                if (a.s !== b.s) return (a.s || 0) - (b.s || 0);
-                if (a.t !== b.t) return (a.t || 0) - (b.t || 0);
-                if (a.n !== b.n) return a.n - b.n;
-                return a.struct_index - b.struct_index;
-            });
-
-            renderGraphList();
-        }
-
-        function resetFilters() {
-            d3.select("#filter-st").property("value", "");
-            d3.select("#filter-n").property("value", "");
-            applyFilters();
-        }
-
-        function renderGraphList() {
-            const list = d3.select("#graph-list");
-            list.selectAll("*").remove();
-
-            filteredGraphs.forEach((graph, i) => {
-                const item = list.append("div")
-                    .attr("class", "graph-item")
-                    .on("click", () => loadGraph(graph));
-
-                item.append("div")
-                    .attr("class", "graph-label")
-                    .text(graph.label);
-
-                const metaText = [
-                    `V: ${graph.n}`,
-                    `E: ${graph.edges_count}`,
-                    `D: ${graph.depth}`,
-                    graph.last_op ? `Op: ${graph.last_op}` : null,
-                    graph.component_sizes && graph.component_sizes.length > 0 ? `Comp: [${graph.component_sizes.join(',')}]` : null,
-                    `#${graph.struct_index + 1}/${graph.total_structures}`
-                ].filter(x => x !== null).join(' | ');
-
-                item.append("div")
-                    .attr("class", "graph-meta")
-                    .text(metaText);
-            });
-
-            // Auto-load first graph
-            if (filteredGraphs.length > 0 && !currentGraph) {
-                loadGraph(filteredGraphs[0]);
-            }
-        }
-
-        function loadGraph(graph) {
-            currentGraph = graph;
-
-            // Update active state
-            d3.selectAll(".graph-item").classed("active", false);
-            d3.selectAll(".graph-item").filter(function() {
-                return d3.select(this).text().includes(graph.label);
-            }).classed("active", true);
-
-            // Update header
-            d3.select("#current-graph-label").text(graph.label);
-
-            // Prepare data
-            const nodes = graph.nodes.map(n => ({...n}));
-            const links = graph.links.map(l => ({...l}));
-
-            // Clear existing
-            linkGroup.selectAll("*").remove();
-            nodeGroup.selectAll("*").remove();
-            labelGroup.selectAll("*").remove();
-
-            // Create force simulation with structure-aware parameters
-            if (simulation) {
-                simulation.stop();
-            }
-
-            // Use pre-computed positions as initial positions
-            nodes.forEach(n => {
-                n.x = n.x || width / 2;
-                n.y = n.y || height / 2;
-            });
-
-            // Build adjacency for structure detection
-            const adjacency = new Map();
-            nodes.forEach(n => adjacency.set(n.id, new Set()));
-            links.forEach(l => {
-                const src = typeof l.source === 'object' ? l.source.id : l.source;
-                const tgt = typeof l.target === 'object' ? l.target.id : l.target;
-                adjacency.get(src).add(tgt);
-                adjacency.get(tgt).add(src);
-            });
-
-            // Detect hub nodes (high degree relative to graph size)
-            const avgDegree = links.length * 2 / nodes.length;
-            nodes.forEach(n => {
-                const degree = adjacency.get(n.id).size;
-                n.isHub = n.is_hub || degree > avgDegree * 1.5;
-            });
-
-            // Structure-aware link distance
-            function linkDistance(link) {
-                const src = link.source;
-                const tgt = link.target;
-
-                // If connecting to hub, use longer distance
-                if (src.isHub || tgt.isHub) {
-                    return 80;
-                }
-
-                // Same branch: tight clustering
-                if (src.branch !== undefined && src.branch === tgt.branch) {
-                    return 30;
-                }
-
-                // Same multipartite part: tight
-                if (src.multipartite_part !== undefined && src.multipartite_part === tgt.multipartite_part) {
-                    return 30;
-                }
-
-                // Different branches/parts: longer
-                return 60;
-            }
-
-            // Structure-aware link strength
-            function linkStrength(link) {
-                const src = link.source;
-                const tgt = link.target;
-
-                // Hub connections: weaker to allow radial spread
-                if (src.isHub || tgt.isHub) {
-                    return 0.3;
-                }
-
-                // Same structural group: strong
-                if (src.branch !== undefined && src.branch === tgt.branch) {
-                    return 1.0;
-                }
-
-                // Cross-branch: weaker
-                return 0.5;
-            }
-
-            // Structure-aware charge (repulsion)
-            function chargeStrength(node) {
-                // Hub nodes need more space
-                if (node.isHub) {
-                    return -150;
-                }
-                // Regular nodes
-                return -50;
-            }
-
-            // Get current slider values for graph
-            const linkStrengthVal = parseFloat(d3.select("#graph-link-strength").property("value"));
-            const chargeStrengthVal = parseFloat(d3.select("#graph-charge-strength").property("value"));
-            const sumForceVal = parseFloat(d3.select("#graph-sum-force").property("value")) / 100;
-            const productForceVal = parseFloat(d3.select("#graph-product-force").property("value")) / 100;
-
-            simulation = d3.forceSimulation(nodes)
-                .force("link", d3.forceLink(links)
-                    .id(d => d.id)
-                    .distance(linkDistance)
-                    .strength(linkStrengthVal / 100))
-                .force("charge", d3.forceManyBody()
-                    .strength(chargeStrengthVal))
-                .force("center", d3.forceCenter(width / 2, height / 2).strength(0.05))
-                .force("collision", d3.forceCollide().radius(12))
-                .force("radial", d3.forceRadial(d => {
-                    // Keep non-hub nodes at reasonable distance from center
-                    if (d.isHub) return 0;
-                    return 150;
-                }, width / 2, height / 2).strength(d => d.isHub ? 0 : 0.02))
-                .force("sumComponent", forceComponentGroup(nodes, "sum_component", sumForceVal))
-                .force("productComponent", forceComponentGroup(nodes, "product_component", productForceVal))
-                .alpha(0.5)
-                .alphaDecay(0.02);
-
-            // Draw links
-            const link = linkGroup.selectAll("line")
-                .data(links)
-                .join("line")
-                .attr("class", "link");
-
-            // Draw nodes
-            const node = nodeGroup.selectAll("circle")
-                .data(nodes)
-                .join("circle")
-                .attr("class", "node")
-                .attr("r", 8)
-                .attr("fill", "#000000")
-                .call(drag(simulation));
-
-            // Draw labels
-            const label = labelGroup.selectAll("text")
-                .data(nodes)
-                .join("text")
-                .attr("class", "node-label")
-                .attr("text-anchor", "middle")
-                .attr("dy", ".35em")
-                .text(d => showLabels ? d.id : "")
-                .style("pointer-events", "none");
-
-            // Update positions on tick with boundary constraints
-            simulation.on("tick", () => {
-                // Clamp nodes within boundaries
-                nodes.forEach(d => {
-                    d.x = Math.max(graphBoundary, Math.min(width - graphBoundary, d.x));
-                    d.y = Math.max(graphBoundary, Math.min(height - graphBoundary, d.y));
-                });
-
-                link
-                    .attr("x1", d => d.source.x)
-                    .attr("y1", d => d.source.y)
-                    .attr("x2", d => d.target.x)
-                    .attr("y2", d => d.target.y);
-
-                node
-                    .attr("cx", d => d.x)
-                    .attr("cy", d => d.y);
-
-                label
-                    .attr("x", d => d.x)
-                    .attr("y", d => d.y);
-            });
-
-            updateInfoPanel(graph);
-
-            // Render cotree in the second pane
-            if (document.getElementById("show-cotree").checked) {
-                renderCotree(graph);
-            }
-        }
-
-        function drag(simulation) {
-            function dragstarted(event, d) {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
-                d.fx = d.x;
-                d.fy = d.y;
-            }
-
-            function dragged(event, d) {
-                d.fx = event.x;
-                d.fy = event.y;
-            }
-
-            function dragended(event, d) {
-                if (!event.active) simulation.alphaTarget(0);
-                if (!physicsEnabled) {
-                    d.fx = event.x;
-                    d.fy = event.y;
-                } else {
-                    d.fx = null;
-                    d.fy = null;
-                }
-            }
-
-            return d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended);
-        }
-
-        function togglePhysics() {
-            physicsEnabled = !physicsEnabled;
-            const btn = document.getElementById("physics-toggle");
-
-            if (physicsEnabled) {
-                btn.textContent = "Freeze Physics";
-                if (simulation) {
-                    simulation.alpha(0.3).restart();
-                    // Unfix all nodes
-                    simulation.nodes().forEach(d => {
-                        d.fx = null;
-                        d.fy = null;
-                    });
-                }
-                if (cotreeSimulation) {
-                    cotreeSimulation.alpha(0.3).restart();
-                    cotreeSimulation.nodes().forEach(d => {
-                        d.fx = null;
-                        d.fy = null;
-                    });
-                }
-            } else {
-                btn.textContent = "Unfreeze Physics";
-                if (simulation) {
-                    simulation.stop();
-                }
-                if (cotreeSimulation) {
-                    cotreeSimulation.stop();
-                }
-            }
-        }
-
-        function toggleLabels() {
-            showLabels = !showLabels;
-            labelGroup.selectAll("text")
-                .text(d => showLabels ? d.id : "");
-        }
-
-        function resetPositions() {
-            if (currentGraph) {
-                loadGraph(currentGraph);
-            }
-        }
-
-        function updateGraphLinkStrength() {
-            const val = parseFloat(d3.select("#graph-link-strength").property("value"));
-            d3.select("#graph-link-strength-val").text(val);
-
-            if (simulation) {
-                simulation.force("link").strength(val / 100);
-                simulation.alpha(0.3).restart();
-            }
-        }
-
-        function updateGraphChargeStrength() {
-            const val = parseFloat(d3.select("#graph-charge-strength").property("value"));
-            d3.select("#graph-charge-strength-val").text(val);
-
-            if (simulation) {
-                simulation.force("charge").strength(val);
-                simulation.alpha(0.3).restart();
-            }
-        }
-
-        function updateGraphBoundary() {
-            graphBoundary = parseFloat(d3.select("#graph-boundary").property("value"));
-            d3.select("#graph-boundary-val").text(graphBoundary);
-        }
-
-        function updateCotreeBoundary() {
-            cotreeBoundary = parseFloat(d3.select("#cotree-boundary").property("value"));
-            d3.select("#cotree-boundary-val").text(cotreeBoundary);
-        }
-
-        function updateCotreeLinkStrength() {
-            const val = parseFloat(d3.select("#cotree-link-strength").property("value"));
-            d3.select("#cotree-link-strength-val").text(val);
-
-            if (cotreeSimulation) {
-                const scaleFactor = Math.max(1, Math.sqrt(cotreeSimulation.nodes().length / 20));
-                cotreeSimulation.force("link").strength(Math.abs(val) / 100);
-                cotreeSimulation.alpha(0.3).restart();
-            }
-        }
-
-        function updateCotreeChargeStrength() {
-            const val = parseFloat(d3.select("#cotree-charge-strength").property("value"));
-            d3.select("#cotree-charge-strength-val").text(val);
-
-            if (cotreeSimulation) {
-                const scaleFactor = Math.max(1, Math.sqrt(cotreeSimulation.nodes().length / 20));
-                cotreeSimulation.force("charge").strength(val / scaleFactor);
-                cotreeSimulation.alpha(0.3).restart();
-            }
-        }
-
-        function updateGraphSumForce() {
-            const val = parseFloat(d3.select("#graph-sum-force").property("value"));
-            d3.select("#graph-sum-force-val").text(val);
-
-            if (simulation && simulation.force("sumComponent")) {
-                simulation.force("sumComponent").strength(val / 100);
-                simulation.alpha(0.3).restart();
-            }
-        }
-
-        function updateGraphProductForce() {
-            const val = parseFloat(d3.select("#graph-product-force").property("value"));
-            d3.select("#graph-product-force-val").text(val);
-
-            if (simulation && simulation.force("productComponent")) {
-                simulation.force("productComponent").strength(val / 100);
-                simulation.alpha(0.3).restart();
-            }
-        }
-
-        // Custom force for component-based attraction/repulsion
-        function forceComponentGroup(nodes, componentKey, strength) {
-            let strengthVal = strength;
-
-            function force(alpha) {
-                if (Math.abs(strengthVal) < 0.001) return;
-
-                // Group nodes by their component
-                const groups = new Map();
-                nodes.forEach(n => {
-                    const comp = n[componentKey];
-                    if (comp !== undefined && comp !== null) {
-                        if (!groups.has(comp)) groups.set(comp, []);
-                        groups.get(comp).push(n);
-                    }
-                });
-
-                // Apply forces within each group
-                groups.forEach(groupNodes => {
-                    if (groupNodes.length < 2) return;
-
-                    // Calculate group center
-                    let cx = 0, cy = 0;
-                    groupNodes.forEach(n => { cx += n.x; cy += n.y; });
-                    cx /= groupNodes.length;
-                    cy /= groupNodes.length;
-
-                    // Apply force toward/away from center
-                    groupNodes.forEach(n => {
-                        const dx = cx - n.x;
-                        const dy = cy - n.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-                        // Positive strength = attract, negative = repel
-                        const factor = strengthVal * alpha * 0.5;
-                        n.vx += (dx / dist) * factor;
-                        n.vy += (dy / dist) * factor;
-                    });
-                });
-            }
-
-            force.strength = function(s) {
-                if (arguments.length) { strengthVal = s; return force; }
-                return strengthVal;
-            };
-
-            return force;
-        }
-
-        function updateInfoPanel(graph) {
-            const content = d3.select("#info-content");
-            content.html("");
-
-            // Basic info
-            const basicInfo = content.append("div").attr("class", "info-section");
-            basicInfo.append("h3").text("Properties");
-
-            // Build properties list based on what data is available
-            const props = [];
-
-            if (graph.profile) {
-                // Show profile (with ∞ for index 0)
-                const profileStr = `(∞,${graph.profile.slice(1).join(',')})`;
-                props.push(["Profile", profileStr]);
-            } else if (graph.s !== null && graph.s !== undefined) {
-                props.push(["K_{s,t}", `K_{${graph.s},${graph.t}}`]);
-            }
-
-            props.push(["Vertices", graph.n]);
-            props.push(["Edges", graph.edges_count]);
-            props.push(["Cotree Depth", graph.depth !== undefined ? graph.depth : "N/A"]);
-            props.push(["Last Operation", graph.last_op || "N/A"]);
-
-            if (graph.component_sizes && graph.component_sizes.length > 0) {
-                props.push(["Component Sizes", `[${graph.component_sizes.join(', ')}]`]);
-            }
-
-            props.push(["Structure #", `${graph.struct_index + 1} / ${graph.total_structures}`]);
-
-            props.forEach(([label, value]) => {
-                const row = basicInfo.append("div").attr("class", "info-row");
-                row.append("span").attr("class", "info-label").text(label);
-                row.append("span").attr("class", "info-value").text(value);
-            });
-
-            // Structure string
-            const structInfo = content.append("div").attr("class", "info-section");
-            structInfo.append("h3").text("Cotree Structure");
-            structInfo.append("pre").text(graph.structure);
-        }
-
-        // Screenshot capture function - saves as SVG
-        function captureScreenshot(paneType) {
-            const isGraph = paneType === 'graph';
-            const svgElement = isGraph ? document.getElementById('graph-svg') : document.getElementById('cotree-svg');
-            const gElement = isGraph ? g : cotreeG;
-
-            if (!currentGraph) {
-                alert('No graph loaded to capture');
-                return;
-            }
-
-            // Get the current transform from the g element
-            const transform = gElement.attr("transform");
-            let scale = 1, translateX = 0, translateY = 0;
-            if (transform) {
-                const scaleMatch = transform.match(/scale\(([^)]+)\)/);
-                const translateMatch = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
-                if (scaleMatch) scale = parseFloat(scaleMatch[1]);
-                if (translateMatch) {
-                    translateX = parseFloat(translateMatch[1]);
-                    translateY = parseFloat(translateMatch[2]);
-                }
-            }
-
-            // Calculate bounding box of the graph content
-            let nodes;
-            if (isGraph && simulation) {
-                nodes = simulation.nodes();
-            } else if (!isGraph && cotreeSimulation) {
-                nodes = cotreeSimulation.nodes();
-            } else {
-                alert('No nodes to capture');
-                return;
-            }
-
-            if (nodes.length === 0) {
-                alert('No nodes to capture');
-                return;
-            }
-
-            // Get node radius (approximate)
-            const nodeRadius = isGraph ? 10 : 16;
-            const padding = 20; // Extra padding around content
-
-            // Calculate bounds considering node positions and sizes
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            nodes.forEach(n => {
-                const x = n.x * scale + translateX;
-                const y = n.y * scale + translateY;
-                minX = Math.min(minX, x - nodeRadius * scale);
-                minY = Math.min(minY, y - nodeRadius * scale);
-                maxX = Math.max(maxX, x + nodeRadius * scale);
-                maxY = Math.max(maxY, y + nodeRadius * scale);
-            });
-
-            // Add padding
-            minX -= padding;
-            minY -= padding;
-            maxX += padding;
-            maxY += padding;
-
-            const contentWidth = maxX - minX;
-            const contentHeight = maxY - minY;
-
-            // Clone the SVG
-            const clonedSvg = svgElement.cloneNode(true);
-
-            // Inline computed styles for all elements
-            function inlineStyles(original, clone) {
-                const originalChildren = original.children;
-                const cloneChildren = clone.children;
-
-                for (let i = 0; i < originalChildren.length; i++) {
-                    inlineStyles(originalChildren[i], cloneChildren[i]);
-                }
-
-                if (original instanceof SVGElement) {
-                    const computed = window.getComputedStyle(original);
-
-                    // Key SVG properties to inline
-                    const props = ['fill', 'stroke', 'stroke-width', 'stroke-opacity',
-                                   'font-size', 'font-weight', 'font-family',
-                                   'text-anchor', 'dominant-baseline', 'opacity'];
-
-                    props.forEach(prop => {
-                        const value = computed.getPropertyValue(prop);
-                        if (value && value !== 'none' && value !== '') {
-                            clone.style[prop] = value;
-                        }
-                    });
-                }
-            }
-
-            inlineStyles(svgElement, clonedSvg);
-
-            // Set new viewBox to crop to content bounds
-            clonedSvg.setAttribute('viewBox', `${minX} ${minY} ${contentWidth} ${contentHeight}`);
-            clonedSvg.setAttribute('width', contentWidth);
-            clonedSvg.setAttribute('height', contentHeight);
-            clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-            // Add white background as first element
-            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            bg.setAttribute('x', minX);
-            bg.setAttribute('y', minY);
-            bg.setAttribute('width', contentWidth);
-            bg.setAttribute('height', contentHeight);
-            bg.setAttribute('fill', 'white');
-            clonedSvg.insertBefore(bg, clonedSvg.firstChild);
-
-            // Serialize SVG to string
-            const serializer = new XMLSerializer();
-            let svgString = serializer.serializeToString(clonedSvg);
-
-            // Add XML declaration
-            svgString = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgString;
-
-            // Generate filename
-            const graphLabel = currentGraph ? currentGraph.label.replace(/[^a-zA-Z0-9_-]/g, '_') : 'graph';
-            const filename = `${graphLabel}_${paneType}.svg`;
-
-            // Download as SVG
-            const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
-            URL.revokeObjectURL(link.href);
-        }
     </script>
 </body>
 </html>

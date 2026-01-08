@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theorem Check Viewer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #00d4ff;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-group label {
+            font-size: 12px;
+            color: #888;
+        }
+        select, input[type="file"] {
+            padding: 8px 12px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #2a2a4a;
+            color: #eee;
+            font-size: 14px;
+        }
+        select:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        .summary {
+            background: #2a2a4a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .summary h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        .summary-item {
+            background: #1a1a2e;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .summary-item .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        .summary-item .label {
+            font-size: 12px;
+            color: #888;
+        }
+        .profiles-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .profile-card {
+            background: #2a2a4a;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .profile-card:hover {
+            border-color: #00d4ff;
+        }
+        .profile-card.selected {
+            border-color: #00ff88;
+            background: #3a3a5a;
+        }
+        .profile-card.has-counterexample {
+            border-left: 4px solid #ff4444;
+        }
+        .profile-card .profile-display {
+            font-family: monospace;
+            font-size: 14px;
+            color: #00d4ff;
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+        .profile-card .profile-meta {
+            font-size: 12px;
+            color: #888;
+        }
+        .profile-card .profile-meta span {
+            margin-right: 15px;
+        }
+        .graphs-section {
+            background: #2a2a4a;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .graphs-section h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+        .graph-item {
+            background: #1a1a2e;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .graph-item.satisfies {
+            border-left: 4px solid #00ff88;
+        }
+        .graph-item.not-satisfies {
+            border-left: 4px solid #ff4444;
+        }
+        .graph-structure {
+            font-family: monospace;
+            font-size: 16px;
+            color: #fff;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+        .graph-meta {
+            font-size: 12px;
+            color: #888;
+        }
+        .graph-meta div {
+            margin-bottom: 4px;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-right: 5px;
+        }
+        .tag.success {
+            background: #00ff8833;
+            color: #00ff88;
+        }
+        .tag.error {
+            background: #ff444433;
+            color: #ff4444;
+        }
+        .tag.info {
+            background: #00d4ff33;
+            color: #00d4ff;
+        }
+        .n-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .n-btn {
+            padding: 5px 12px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #2a2a4a;
+            color: #eee;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .n-btn:hover {
+            border-color: #00d4ff;
+        }
+        .n-btn.active {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border-color: #00d4ff;
+        }
+        .n-btn.has-issues {
+            color: #ff4444;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        #dropZone {
+            border: 2px dashed #444;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+        #dropZone.dragover {
+            border-color: #00d4ff;
+            background: #2a2a4a;
+        }
+        #dropZone p {
+            color: #888;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Theorem 4 Verification Viewer</h1>
+
+        <div id="dropZone">
+            <p>Drop a folder with theorem_check_n*.json files here, or select files:</p>
+            <input type="file" id="fileInput" multiple accept=".json" webkitdirectory>
+        </div>
+
+        <div id="content" style="display: none;">
+            <div class="summary" id="summary"></div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label>Select n:</label>
+                    <div class="n-selector" id="nSelector"></div>
+                </div>
+            </div>
+
+            <div class="profiles-list" id="profilesList"></div>
+
+            <div class="graphs-section" id="graphsSection" style="display: none;">
+                <h3>Extremal Graphs for Selected Profile</h3>
+                <div id="graphsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = {};
+        let currentN = null;
+        let currentProfile = null;
+
+        // File handling
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const items = e.dataTransfer.items;
+            const files = [];
+
+            for (const item of items) {
+                if (item.kind === 'file') {
+                    const entry = item.webkitGetAsEntry();
+                    if (entry.isDirectory) {
+                        await readDirectory(entry, files);
+                    } else {
+                        files.push(item.getAsFile());
+                    }
+                }
+            }
+
+            loadFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            loadFiles(Array.from(e.target.files));
+        });
+
+        async function readDirectory(entry, files) {
+            const reader = entry.createReader();
+            return new Promise((resolve) => {
+                reader.readEntries(async (entries) => {
+                    for (const e of entries) {
+                        if (e.isFile && e.name.endsWith('.json')) {
+                            const file = await new Promise(res => e.file(res));
+                            files.push(file);
+                        }
+                    }
+                    resolve();
+                });
+            });
+        }
+
+        async function loadFiles(files) {
+            allData = {};
+
+            for (const file of files) {
+                if (file.name.startsWith('theorem_check_n') && file.name.endsWith('.json')) {
+                    const match = file.name.match(/theorem_check_n(\d+)\.json/);
+                    if (match) {
+                        const n = parseInt(match[1]);
+                        const text = await file.text();
+                        try {
+                            allData[n] = JSON.parse(text);
+                        } catch (e) {
+                            console.error(`Error parsing ${file.name}:`, e);
+                        }
+                    }
+                }
+            }
+
+            if (Object.keys(allData).length > 0) {
+                document.getElementById('dropZone').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                renderUI();
+            }
+        }
+
+        function renderUI() {
+            renderSummary();
+            renderNSelector();
+            if (currentN === null) {
+                const ns = Object.keys(allData).map(Number).sort((a,b) => a-b);
+                if (ns.length > 0) {
+                    selectN(ns[0]);
+                }
+            }
+        }
+
+        function renderSummary() {
+            const ns = Object.keys(allData).map(Number).sort((a,b) => a-b);
+            let totalProfiles = 0;
+            let totalCounterexamples = 0;
+            let profilesNoneSatisfy = 0;
+
+            for (const n of ns) {
+                const data = allData[n];
+                totalProfiles += data.summary.profiles_with_start_index_ge_2;
+                totalCounterexamples += data.counterexamples.length;
+                profilesNoneSatisfy += data.summary.profiles_none_satisfy;
+            }
+
+            document.getElementById('summary').innerHTML = `
+                <h3>Summary (n = ${Math.min(...ns)} to ${Math.max(...ns)})</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="value">${ns.length}</div>
+                        <div class="label">Values of n</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="value">${totalProfiles}</div>
+                        <div class="label">Profiles (start idx ≥ 2)</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="value" style="color: ${totalCounterexamples > 0 ? '#ff4444' : '#00ff88'}">${totalCounterexamples}</div>
+                        <div class="label">Counterexample Graphs</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="value" style="color: ${profilesNoneSatisfy > 0 ? '#ff4444' : '#00ff88'}">${profilesNoneSatisfy}</div>
+                        <div class="label">Profiles w/o Satisfying Graph</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderNSelector() {
+            const ns = Object.keys(allData).map(Number).sort((a,b) => a-b);
+            const container = document.getElementById('nSelector');
+            container.innerHTML = ns.map(n => {
+                const data = allData[n];
+                const hasIssues = data.counterexamples.length > 0;
+                return `<button class="n-btn ${currentN === n ? 'active' : ''} ${hasIssues ? 'has-issues' : ''}"
+                        onclick="selectN(${n})">${n}</button>`;
+            }).join('');
+        }
+
+        function selectN(n) {
+            currentN = n;
+            currentProfile = null;
+            renderNSelector();
+            renderProfiles();
+            document.getElementById('graphsSection').style.display = 'none';
+        }
+
+        function renderProfiles() {
+            const data = allData[currentN];
+            const profiles = Object.entries(data.profiles);
+
+            if (profiles.length === 0) {
+                document.getElementById('profilesList').innerHTML = `
+                    <div class="empty-state">No profiles with start index ≥ 2 for n=${currentN}</div>
+                `;
+                return;
+            }
+
+            // Sort by start_index, then by edge_count descending
+            profiles.sort((a, b) => {
+                const pa = a[1], pb = b[1];
+                if (pa.start_index !== pb.start_index) return pa.start_index - pb.start_index;
+                return pb.edge_count - pa.edge_count;
+            });
+
+            document.getElementById('profilesList').innerHTML = profiles.map(([hash, p]) => {
+                const hasCounterexample = p.graphs_not_satisfying.length > 0;
+                const profileStr = p.profile_display ? p.profile_display.join(', ') : p.profile.join(', ');
+                return `
+                    <div class="profile-card ${currentProfile === hash ? 'selected' : ''} ${hasCounterexample ? 'has-counterexample' : ''}"
+                         onclick="selectProfile('${hash}')">
+                        <div class="profile-display">[${profileStr}]</div>
+                        <div class="profile-meta">
+                            <span class="tag info">start idx: ${p.start_index}</span>
+                            <span class="tag info">edges: ${p.edge_count}</span>
+                            <span class="tag ${hasCounterexample ? 'error' : 'success'}">
+                                ${p.graphs_satisfying.length} sat / ${p.graphs_not_satisfying.length} not
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectProfile(hash) {
+            currentProfile = hash;
+            renderProfiles();
+            renderGraphs();
+        }
+
+        function renderGraphs() {
+            const data = allData[currentN];
+            const profile = data.profiles[currentProfile];
+
+            if (!profile) {
+                document.getElementById('graphsSection').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('graphsSection').style.display = 'block';
+
+            const allGraphs = [
+                ...profile.graphs_satisfying.map(g => ({...g, satisfies: true})),
+                ...profile.graphs_not_satisfying.map(g => ({...g, satisfies: false}))
+            ];
+
+            document.getElementById('graphsList').innerHTML = allGraphs.map(g => `
+                <div class="graph-item ${g.satisfies ? 'satisfies' : 'not-satisfies'}">
+                    <div class="graph-structure">${g.structure}</div>
+                    <div class="graph-meta">
+                        <div>
+                            <span class="tag ${g.satisfies ? 'success' : 'error'}">
+                                ${g.satisfies ? 'Satisfies theorem' : 'Does NOT satisfy'}
+                            </span>
+                            <span class="tag info">${g.edges} edges</span>
+                            <span class="tag info">depth: ${g.depth}</span>
+                        </div>
+                        <div>Flattened components: [${g.flattened_components.join(', ')}]</div>
+                        <div>Reason: ${g.reason}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

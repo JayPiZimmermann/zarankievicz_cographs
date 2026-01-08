@@ -1,0 +1,139 @@
+\begin{thebibliography}{10}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{URL }
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi:\discretionary{}{}{}#1}\else
+  \providecommand{\doi}{doi:\discretionary{}{}{}\begingroup
+  \urlstyle{rm}\Url}\fi
+
+\bibitem{Allem2023}
+L.~E. Allem, G.~Chen, and F.~C. Tura, \textit{Regular cograph is determined by
+  its spectrum}, arXiv preprint arXiv:2305.19556  (2023).
+
+\bibitem{Alon2007}
+N.~Alon, E.~Fischer, and I.~Newman, \textit{Efficient testing of bipartite
+  graphs for forbidden induced subgraphs}, SIAM Journal on Computing
+  \textbf{37} (2007), no.~3, 959--976.
+
+\bibitem{AlonRonyaiSzabo1999}
+N.~Alon, L.~R\'onyai, and T.~Szab\'o, \textit{Norm-graphs: variations and
+  applications}, Journal of Combinatorial Theory, Series B \textbf{76} (1999),
+  no.~2, 280--290.
+
+\bibitem{AxenovichZimmermann2024}
+M.~Axenovich and J.~Zimmermann, \textit{Induced {T}ur\'an problems in bipartite
+  graphs}  (2024).
+
+\bibitem{Bonamy2020}
+M.~Bonamy, N.~Bousquet, M.~Pilipczuk, P.~Rz\k{a}\.{z}ewski, S.~Thomass\'e, and
+  B.~Walczak, \textit{Degeneracy of {$P_t$}-free and {$C_{\geq t}$}-free graphs
+  with no large complete bipartite subgraph}, Journal of Combinatorial Theory,
+  Series B \textbf{152} (2022), 353--385.
+
+\bibitem{Bousquet2014_identifyingCodes}
+N.~Bousquet, A.~Lagoutte, Z.~Li, A.~Parreau, and S.~Thomass\'{e},
+  \textit{Identifying codes in hereditary classes of graphs and vc-dimension},
+  SIAM Journal on Discrete Mathematics \textbf{29} (2015), no.~4, 2047--2064.
+  \urlprefix\url{https://doi.org/10.1137/14097879X}.
+
+\bibitem{Conlon2022_someRemarksZarankievicz}
+D.~Conlon, \textit{Some remarks on the {Z}arankiewicz problem}, Mathematical
+  Proceedings of the Cambridge Philosophical Society \textbf{173} (2022),
+  no.~1, 155--161.
+
+\bibitem{Corneil1981}
+D.~G. Corneil, H.~Lerchs, and L.~Stewart~Burlingham, \textit{Complement
+  reducible graphs}, Discrete Applied Mathematics \textbf{3} (1981), no.~3,
+  163--174.
+
+\bibitem{Erdos1964}
+P.~Erd\H{o}s, \textit{Extremal problems in graph theory}, Theory of Graphs and
+  its Applications (Proc. Sympos. Smolenice, 1963)  (1964), 29--36.
+
+\bibitem{ErdosHajnal1989}
+P.~Erd\H{o}s and A.~Hajnal, \textit{{R}amsey-type theorems}, Discrete Applied
+  Mathematics \textbf{25} (1989), no. 1--2, 37--52.
+
+\bibitem{FoxSudakov2007}
+J.~Fox and B.~Sudakov, \textit{Induced {R}amsey-type theorems}, Advances in
+  Mathematics \textbf{219} (2008), no.~6, 1771--1800.
+
+\bibitem{Furedi1991}
+Z.~F\"uredi, \textit{On a {T}ur\'an type problem of {Erd\H{o}s}}, Combinatorica
+  \textbf{11} (1991), no.~1, 75--79.
+
+\bibitem{Furedi2013}
+Z.~F\"uredi and M.~Simonovits, \textit{The history of degenerate ({B}ipartite)
+  extremal graph problems}, Erd\H{o}s Centennial, Bolyai Society Mathematical
+  Studies \textbf{25} (2013), 169--264.
+
+\bibitem{Gishboliner2023}
+L.~Gishboliner, A.~Shapira, and Y.~Wigderson, \textit{On {R}\"odl's theorem for
+  cographs}, arXiv preprint arXiv:2301.12639  (2023).
+
+\bibitem{Hunter2024}
+Z.~Hunter, A.~Milojevi\'c, B.~Sudakov, and I.~Tomon,
+  \textit{K\"ov\'ari-s\'os-tur\'an theorem for hereditary families}, arXiv
+  preprint arXiv:2401.12000  (2024).
+
+\bibitem{Illingworth2021}
+F.~Illingworth, \textit{A note on induced {T}ur\'an numbers}, arXiv preprint
+  arXiv:2109.10594  (2021).
+
+\bibitem{JanzerPohoata2020}
+O.~Janzer and C.~Pohoata, \textit{On the {Z}arankiewicz problem for graphs with
+  bounded {VC}-dimension}, Combinatorica  (2020).
+
+\bibitem{Smorodinsky2023}
+C.~Keller and S.~Smorodinsky, \textit{A survey of {Z}arankiewicz problems in
+  geometry}, arXiv preprint arXiv:2301.12790  (2023).
+
+\bibitem{Keller2024}
+C.~Keller and S.~Smorodinsky, \textit{{Z}arankiewicz's problem via
+  {$\varepsilon$}-t-nets}, \textit{Proceedings of the 40th International
+  Symposium on Computational Geometry (SoCG 2024)}, 2024, 60:1--60:14.
+
+\bibitem{KollarRonyaiSzabo1996}
+J.~Koll\'ar, L.~R\'onyai, and T.~Szab\'o, \textit{Norm-graphs and bipartite
+  {T}ur\'an numbers}, Combinatorica \textbf{16} (1996), no.~3, 399--406.
+
+\bibitem{KovariSosTuran1954}
+T.~K\"ov\'ari, V.~T. S\'os, and P.~Tur\'an, \textit{On a problem of {K}.
+  {Z}arankiewicz}, Colloquium Mathematicum \textbf{3} (1954), 50--57.
+
+\bibitem{Loh2016}
+P.-S. Loh, M.~Tait, C.~Timmons, and R.~M. Zhou, \textit{Induced {T}ur\'an
+  numbers}, Combinatorics, Probability and Computing \textbf{27} (2018), no.~2,
+  274--288.
+
+\bibitem{Nguyen2023}
+T.~Nguyen, A.~Scott, P.~Seymour, and S.~Thomass\'e, \textit{Induced subgraph
+  density. {VI}. {B}ounded {VC}-dimension}, arXiv preprint arXiv:2309.07494
+  (2023).
+
+\bibitem{Nguyen2025}
+T.~H. Nguyen, \textit{Polynomial $\chi$-boundedness for excluding {$P_5$}},
+  arXiv preprint arXiv:2512.24907  (2025).
+
+\bibitem{Nikiforov2021}
+V.~Nikiforov, \textit{Degenerate {T}ur\'an problems for hereditary properties},
+  Discrete Mathematics \textbf{344} (2021), no.~9, 112505.
+
+\bibitem{Shapira2016}
+A.~Shapira, \textit{A survey of extremal graph theory}, Lecture notes  (2016).
+
+\bibitem{Sudakov2020}
+B.~Sudakov and I.~Tomon, \textit{Tur\'an number of bipartite graphs with no
+  {$K_{t,t}$}}, Proceedings of the American Mathematical Society \textbf{148}
+  (2020), no.~7, 2811--2818.
+
+\bibitem{Sylvester1882}
+J.~J. Sylvester, \textit{On subinvariants, i.e. semi-invariants to binary
+  quantics of an unlimited order}, American Journal of Mathematics \textbf{5}
+  (1882), no.~1, 134--.
+
+\bibitem{Tan2022_zarankieviczSAT}
+J.~Tan, \textit{An attack on zarankiewicz's problem through sat solving}
+  (2022). \urlprefix\url{https://arxiv.org/abs/2203.02283}.
+
+\end{thebibliography}
