@@ -1,49 +1,46 @@
 This is BibTeX, Version 0.99d (TeX Live 2022/Debian)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
-The style file: WileyNJD-AMS.bst
+The style file: plainnat.bst
 Database file #1: references.bib
-Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
-Warning--empty journal in AxenovichZimmermann2024
-You've used 29 entries,
-            3028 wiz_defined-function locations,
-            836 strings with 9518 characters,
-and the built_in function-call counts, 11869 in all, are:
-= -- 882
-> -- 464
-< -- 13
-+ -- 226
-- -- 125
-* -- 845
-:= -- 1497
-add.period$ -- 31
-call.type$ -- 29
-change.case$ -- 143
-chr.to.int$ -- 0
-cite$ -- 30
-duplicate$ -- 992
-empty$ -- 1007
-format.name$ -- 145
-if$ -- 2432
-int.to.chr$ -- 0
-int.to.str$ -- 29
-missing$ -- 246
-newline$ -- 95
-num.names$ -- 58
-pop$ -- 427
+You've used 25 entries,
+            2773 wiz_defined-function locations,
+            815 strings with 10316 characters,
+and the built_in function-call counts, 11972 in all, are:
+= -- 1131
+> -- 629
+< -- 16
++ -- 213
+- -- 188
+* -- 1021
+:= -- 1875
+add.period$ -- 113
+call.type$ -- 25
+change.case$ -- 137
+chr.to.int$ -- 25
+cite$ -- 50
+duplicate$ -- 513
+empty$ -- 967
+format.name$ -- 229
+if$ -- 2510
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 23
+newline$ -- 170
+num.names$ -- 102
+pop$ -- 210
 preamble$ -- 1
-purify$ -- 114
+purify$ -- 112
 quote$ -- 0
-skip$ -- 340
+skip$ -- 391
 stack$ -- 0
-substring$ -- 592
-swap$ -- 612
-text.length$ -- 13
+substring$ -- 489
+swap$ -- 44
+text.length$ -- 2
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 116
-warning$ -- 1
-while$ -- 93
-width$ -- 31
-write$ -- 240
-(There was 1 warning)
+type$ -- 275
+warning$ -- 0
+while$ -- 104
+width$ -- 0
+write$ -- 405

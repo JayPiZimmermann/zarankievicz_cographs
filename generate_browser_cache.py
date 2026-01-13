@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Generate browser D3 cache with per-parameter JSON files.
-Depth is calculated as the longest path from root to any leaf (number of edges).
 
 Memory-efficient: processes one parameter set at a time and writes immediately.
 """
@@ -15,37 +14,6 @@ from collections import defaultdict
 sys.path.insert(0, str(Path(__file__).parent))
 from src.builder import parse_structure
 from src.cotree import Cotree
-
-
-def calculate_cotree_depth(node: Cotree, parent_op: str = None) -> int:
-    """
-    Calculate depth as the max number of operation switches from root to leaf.
-
-    Depth increases when traversing from a sum to product or vice versa.
-    Vertices don't count. Same-type consecutive operations don't add depth.
-
-    Examples:
-    - "1" -> depth 0 (just a vertex)
-    - "P(1,1)" -> depth 0 (no switches, just P to vertices)
-    - "P(S(1,1),1)" -> depth 1 (one switch: P->S)
-    - "P(S(P(1,1),1),1)" -> depth 2 (two switches: P->S->P)
-    - "S(P(1,1),P(1,1))" -> depth 1 (one switch: S->P)
-    """
-    if node.op == "vertex":
-        return 0
-
-    if not node.children:
-        return 0
-
-    # Count switch if operation changes from parent (and parent is not None/vertex)
-    switch = 0
-    if parent_op is not None and parent_op != "vertex" and parent_op != node.op:
-        switch = 1
-
-    max_child_depth = max(
-        calculate_cotree_depth(child, node.op) for child in node.children
-    )
-    return switch + max_child_depth
 
 
 def get_vertex_ids(node: Cotree, vertex_map: dict) -> list:
@@ -138,20 +106,17 @@ def process_structure(struct_str, s, t, n, struct_idx):
     """
     Process a structure string and return graph data.
 
-    Cograph rendering (nodes/links) only available when s <= 4 AND t <= 20.
+    Cograph rendering (nodes/links) only available when s <= 6 AND t <= 20.
     Otherwise only cotree data is stored.
     """
     root = parse_structure(struct_str)
-
-    # Calculate correct depth (longest path from root to leaf)
-    depth = calculate_cotree_depth(root)
 
     # Get root operation
     root_op = root.op
 
     # Determine if we should include full cograph data
-    # Only render cograph when s <= 4 AND t <= 20
-    include_cograph = (s <= 4) and (t <= 20)
+    # Only render cograph when s <= 6 AND t <= 20
+    include_cograph = (s <= 6) and (t <= 20)
 
     if include_cograph:
         # Assign vertex IDs
@@ -174,7 +139,6 @@ def process_structure(struct_str, s, t, n, struct_idx):
             'struct_index': struct_idx,
             'edges_count': len(edges),
             'structure': struct_str,
-            'depth': depth,
             'root_op': root_op,
             'root_children': root_children,  # List of {size, vertices}
             'nodes': nodes,
@@ -191,7 +155,6 @@ def process_structure(struct_str, s, t, n, struct_idx):
             'struct_index': struct_idx,
             'edges_count': edges_count,
             'structure': struct_str,
-            'depth': depth,
             'root_op': root_op,
             'cotree_only': True
         }

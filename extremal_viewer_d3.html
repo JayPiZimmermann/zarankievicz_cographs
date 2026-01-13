@@ -35,11 +35,131 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
 
         #header h1 {
             font-size: 24px;
             font-weight: 600;
+        }
+
+        .info-btn {
+            position: absolute;
+            right: 20px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.5);
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .info-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .info-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .info-modal.hidden {
+            display: none;
+        }
+
+        .info-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .info-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: #f1f3f5;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-modal-close:hover {
+            background: #e9ecef;
+        }
+
+        .info-modal h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .info-modal h3 {
+            font-size: 14px;
+            color: #667eea;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .info-modal p {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .info-modal a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .info-modal a:hover {
+            text-decoration: underline;
+        }
+
+        .info-modal ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .info-modal li {
+            font-size: 13px;
+            color: #555;
+            padding: 6px 0;
+            border-bottom: 1px solid #f1f3f5;
+        }
+
+        .info-modal li:last-child {
+            border-bottom: none;
         }
 
         .loading-overlay {
@@ -85,6 +205,8 @@
             border-right: 1px solid #dee2e6;
             overflow-y: auto;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
         }
 
         #main {
@@ -469,6 +591,37 @@
     <div id="app">
         <div id="header">
             <h1>Extremal Cograph Viewer</h1>
+            <button class="info-btn" onclick="toggleInfoModal()">i</button>
+        </div>
+
+        <div id="info-modal" class="info-modal hidden">
+            <div class="info-modal-content">
+                <button class="info-modal-close" onclick="toggleInfoModal()">&times;</button>
+                <h2>About</h2>
+                <p>
+                    This interactive visualization tool presents edge-maximal K<sub>s,t</sub>-free cographs,
+                    computed via dynamic programming on the lattice of biclique-profiles.
+                </p>
+                <p>
+                    A master project by <a href="https://jakob-zimmermann.fly.dev/">Jakob Paul Zimmermann</a>.
+                </p>
+
+                <h3>Paper</h3>
+                <p>
+                    <a href="https://arxiv.org/abs/2601.07406">Bipartite Tur&aacute;n problem on cographs</a><br>
+                    <span style="font-size: 12px; color: #888;">arXiv:2601.07406, January 2026</span>
+                </p>
+
+                <h3>Libraries Used</h3>
+                <ul>
+                    <li><a href="https://d3js.org/">D3.js</a> &ndash; Data visualization library (ISC License, Copyright 2010-2023 Mike Bostock)</li>
+                </ul>
+
+                <h3>Source Code</h3>
+                <p>
+                    <a href="https://github.com/JayPiZimmermann/zarankievicz_cographs">github.com/JayPiZimmermann/zarankievicz_cographs</a>
+                </p>
+            </div>
         </div>
 
         <div id="loading-overlay" class="loading-overlay">
@@ -480,7 +633,7 @@
 
         <div id="sidebar">
             <p style="font-size: 13px; color: #333; margin: 0 0 15px 0; line-height: 1.5;">
-                This website presents extremal K<sub>s,t</sub>-free cographs on n vertices, computed via dynamic programming on the lattice of biclique-profiles.
+                This interactive visualization tool presents extremal K<sub>s,t</sub>-free cographs on n vertices, computed via dynamic programming on the lattice of biclique-profiles.
             </p>
 
             <div class="param-section">
@@ -541,6 +694,11 @@
                 </div>
                 <div id="completeness-info" style="margin-top: 10px; font-size: 13px; color: #6c757d; padding: 8px; background: #f8f9fa; border-radius: 4px;">
                 </div>
+            </div>
+
+            <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid #e9ecef; font-size: 12px; color: #6c757d; line-height: 1.6;">
+                A master project by <a href="https://jakob-zimmermann.fly.dev/" style="color: #2563eb; text-decoration: none;">Jakob Paul Zimmermann</a>.<br>
+                Official webpage to the paper <a href="https://arxiv.org/abs/2601.07406" style="color: #2563eb; text-decoration: none;">Bipartite Tur&aacute;n problem on cographs</a>.
             </div>
         </div>
 
@@ -1066,8 +1224,8 @@
             }
             // Otherwise keep current checkbox settings (don't force changes)
 
-            // Cograph view: automatically enabled when s <= 4 and n >= s + t and has graph data
-            const cographAvailable = hasGraphData && currentS <= 4 && currentN >= currentS + currentT;
+            // Cograph view: automatically enabled when s <= 6 and n >= s + t and has graph data
+            const cographAvailable = hasGraphData && currentS <= 6 && currentN >= currentS + currentT;
             cographView = cographAvailable;
         }
 
@@ -1135,10 +1293,11 @@
                 console.log("Outer components:", outerComponents.length, outerComponents.map(c => c.length));
 
                 // Calculate orbit distance linearly based on vertex count
-                // Base: 220 for ~40 nodes, scale linearly with node count (smaller scaling)
-                const baseOrbitDist = parseFloat(d3.select("#orbit-dist").property("value")) || 220;
+                // Base: 640 for ~40 nodes, scale with node count and s+t parameters
+                const baseOrbitDist = 640;
                 const baseNodeCount = 40;
-                const initialOrbitDist = baseOrbitDist * (nodes.length / baseNodeCount);
+                const stScale = 1 + 0.08 * (currentS + currentT);
+                const initialOrbitDist = baseOrbitDist * (nodes.length / baseNodeCount) * stScale;
 
                 // Cluster extremal nodes VERY tightly in exact center
                 extremalNodes.forEach((n, i) => {
@@ -1194,8 +1353,10 @@
             if (useCographForces) {
                 // COGRAPH VIEW: Custom forces for s-1 component visualization
                 // Calculate orbit distance linearly based on vertex count (smaller scaling)
+                // Also scale slightly with s+t for larger biclique parameters
                 const baseOrbit = parseFloat(d3.select("#orbit-dist").property("value")) || 220;
-                const orbitDist = baseOrbit * (nodes.length / 40);  // Linear scaling with node count
+                const stScaleFactor = 1 + 0.03 * (currentS + currentT);
+                const orbitDist = baseOrbit * (nodes.length / 40) * stScaleFactor;
                 const orbitPull = parseFloat(d3.select("#orbit-pull").property("value")) / 100;
                 const centerPull = parseFloat(d3.select("#center-pull").property("value")) / 100;
 
@@ -1505,10 +1666,6 @@
                     <span class="info-label">Edges</span>
                     <span class="info-value">${graph.edges_count}</span>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Depth</span>
-                    <span class="info-value">${graph.depth !== undefined ? graph.depth : 'N/A'}</span>
-                </div>
             `;
 
             // Update completeness info
@@ -1527,7 +1684,7 @@
         function saveCotreeCSV() {
             if (!currentGraph || !currentGraph.structure) return;
 
-            const csv = `s,t,n,edges,depth,structure\n${currentS},${currentT},${currentN},${currentGraph.edges_count},${currentGraph.depth},"${currentGraph.structure}"`;
+            const csv = `s,t,n,edges,structure\n${currentS},${currentT},${currentN},${currentGraph.edges_count},"${currentGraph.structure}"`;
             downloadCSV(csv, `cotree_K${currentS}_${currentT}_n${currentN}.csv`);
         }
 
@@ -1552,6 +1709,19 @@
             a.click();
             URL.revokeObjectURL(url);
         }
+
+        function toggleInfoModal() {
+            const modal = document.getElementById("info-modal");
+            modal.classList.toggle("hidden");
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener("click", (e) => {
+            const modal = document.getElementById("info-modal");
+            if (e.target === modal) {
+                modal.classList.add("hidden");
+            }
+        });
 
         function togglePhysics() {
             physicsEnabled = !physicsEnabled;
